@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Quizzes</h2>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Quiz</th>
+                <th>Length</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for quiz in quizzes %}
+                <tr>
+                  <td class="align-middle">{{ quiz.name }}</td>
+                  <td class="align-middle">{{ quiz.questions_count }} questions</td>
+                  <td class="text-center">
+                    <a href="{% url 'take_quiz' quiz.pk %}" class="btn btn-primary">Start quiz</a>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td class="bg-light text-center font-italic" colspan="3">There are no quizzes right now.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+{% endblock %}

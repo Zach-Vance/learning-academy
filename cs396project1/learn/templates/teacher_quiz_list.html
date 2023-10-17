@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    <div class="text-center my-3">
+        <h2 class="my-3">My Quizzes</h2>
+        <a href="{% url 'quiz_add' %}" class="btn btn-primary mb-3" role="button">Add Quiz</a>
+    </div>
+    <hr />
+    <div class="card">
+        <div class="card-header">
+            <strong>Quizzes</strong>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-hover">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Quiz</th>
+                        <th>Questions</th>
+                        <th>Taken</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for quiz in quizzes %}
+                            <tr>
+                                <td class="align-middle"><a href="{% url 'edit_quiz' quiz.pk %}">{{ quiz.name }}</a></td>
+                                <td class="align-middle">{{ quiz.questions_count }}</td>
+                                <td class="align-middle">{{ quiz.taken_count }}</td>
+                                <td class="text-right">
+                                    <a href="{% url 'quiz_results' quiz.pk %}" class="btn btn-primary">View Results</a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4">You haven't created any quizzes yet.</td>
+                            </tr>
+                        {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+{% endblock %}

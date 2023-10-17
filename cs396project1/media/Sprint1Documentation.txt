@@ -1,0 +1,15 @@
+	Functional requirements are an important component of proper project planning and coordination. They allow for the client and development team's expectations to meet so there are not any miscommunications regarding expectations. Proper expression of product requirements, including functional requirements allows for the development team to produce the product to the specifications of the client. The mandatory functional requirements that the client has expressed to the developement team includes: controlling the main caracter via keyboard or gamepad, account creation for multiple players, a login system for users and administrators, a save game system, and a splash screen. 
+
+	For the scope of this project, the development team will only be implementing keyboard controls. Using the keyboard, a player will be able to jump, walk left and right, and fire projectiles at enemies. Each execution of a control will interact with the enviornment, play a sound clip, execute an animation, and/or move the character. The team will source as many of these assets (sounds clips, animations, sprites) online and will not be creating them in house. 
+
+	A login system has been requested to be added to the recreation of the base game, which will allow both users and admins to login. With a username and login, players and admins alike will be able to login to the system. Admins will be able to access and edit account info for players. 
+
+	In addition to the login system, the client has requested that the state of the game be saved for all players and allow player to continue once they've logged back into their accounts. The player will be able to simply pause the game and logout and the game will automatically be saved. When logging back in users will either be able to continue from their pervious game or be able to start a new game. Both the login credentials and the save states of the game will be stored in a database. 
+
+	The splash screen will display an appropriately themed backdrop image when the user launches the game. The splash screen will also function as a highscore display and a login screen. 
+
+
+
+GANTT CHART
+
+A Gantt chart is a project managetment tool that provides a detailed visual representation of a project's timeline, tasks, and progress. The Gantt chart displays the tasks that were worked on and completed during the first sprint. Tasks completed in the first sprint include: class readings, planning, task distribution, presentation, documentation, and CATME evaluations. These tasks aided the team in the planning and organization of the remainder of the project and allowed for the team to familiarize themselves with eachother and work together better in future sprints. 

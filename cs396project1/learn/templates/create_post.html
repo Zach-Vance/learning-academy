@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Create Post
+{% endblock %}
+
+{% block content %}
+    <div class="col-md-8 offset-md-2">
+        {% if user.is_authenticated %}
+            <h1 class="mt-4">Create Discussion Post</h1>
+            <div class="my-3">
+                <p>Create a new post by filling out the details below.</p>
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.media }}
+                <div class="form-group">
+                    {{ form.as_p }}
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Post</button>
+            </form>
+            <script>
+                var name = "{{ user.id }}";
+                document.getElementById("user").value = name;
+            </script>
+        {% else %}
+            <div class="alert alert-warning mt-4">
+                Please <a href="{% url 'login' %}" class="alert-link">login</a> to continue.
+            </div>
+        {% endif %}
+    </div>   
+{% endblock %}

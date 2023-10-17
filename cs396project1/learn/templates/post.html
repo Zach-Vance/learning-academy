@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load hitcount_tags %}
+{% block title %}
+    Post - {{ post.title }}
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            {% if not user.is_authenticated %}
+                <p class="mt-5">
+                    Please <a href="{% url 'login' %}">login</a> to see this post.
+                </p>
+            {% else %}
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h1>{{ post.title }}</h1>
+                        <p><small>By: {{ post.author }} | {{ post.date }} | Views: {% get_hit_count for post %}</small></p>
+                        <hr>
+                        {{ post.body | safe }}
+
+                       
+                        {% if post.file1 %}
+                            File : <a href="{{ post.file1.url }}" download>Download file</a>
+                            <a href=" {{post.file1.url}} " target="_blank"> View file</a> 
+                            <br/>
+                        {% endif %}
+                        {% if post.file2 %}
+                            File : <a href="{{ post.file2.url }}" download>Download file</a>
+                            <a href=" {{post.file2.url}} " target="_blank"> View file</a> 
+                            <br/>
+                        {% endif %}
+                        {% if post.file3 %}
+                            File : <a href="{{ post.file3.url }}" download>Download file</a>
+                            <a href=" {{post.file3.url}} " target="_blank"> View file</a> 
+                            <br/>
+                        {% endif %}
+
+                        <br><br>
+                        <hr>
+                        <h2>Comments</h2>
+                        <br>
+
+                        {% if not post.comments.all %}
+                            <p>No comments yet...</p>
+                            <hr>
+                        {% else %}
+                            {% for comment in post.comments.all %}
+                                <p>
+                                    <strong>
+                                        {{ comment.name }}
+                                        {% if comment.name.is_student %}
+                                            (Student)
+                                        {% elif comment.name.is_teacher %}
+                                            <i>(Teacher)</i>
+                                        {% else %}
+                                            <strong>(Admin)</strong>
+                                        {% endif %}
+                                        | {{ comment.date }}
+                                    </strong><br>
+                                    {{ comment.body | safe }}
+                                </p>
+                                <br><br>
+                                <hr>
+                            {% endfor %}
+                        {% endif %}
+
+                        <h3>Post a Comment</h3>
+                        <div class ="form-group" enctype="multipart/form-data">
+                            <form method="POST">
+                                {% csrf_token %}
+                                {{ form.media}}
+                                {{ form.as_p}}
+                                <button class="btn btn-primary">Add Comment</button>
+                            </form>
+                            <script>
+                                var name = "{{user.id}}";
+                                document.getElementById("user").value = name;
+                        
+                        </script>
+                        </div>
+                    </div>
+                </div>
+                <br><br>
+                <a href="{% url 'home' %}" class="btn btn-primary">Back</a>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1 class="mt-4 text-center">Quiz Results</h1>
+    <div class="text-center my-3">
+        <h2 class="mt-4">{{ quiz.name }} Results</h2>
+    <hr />
+    <div class="card">
+        <div class="card-header">
+            <strong>Quiz Results</strong>
+            <span class="ml-3">Average Score: {{ quiz_score.average_score | default_if_none:0.0 }}</span>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-hover">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Student</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for taken_quiz in taken_quizzes %}
+                        <tr>
+                            <td>{{ taken_quiz.student.user.username }} 
+                            </td>
+                            <td>{{ taken_quiz.score }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center font-italic">There are no results for this quiz yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <!-- <div class="card-footer">
+                <span>Num taken: <strong>{{ total_taken_quizzes }}</strong></span>
+            </div> -->
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

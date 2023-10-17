@@ -1,0 +1,25 @@
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+Subject: Password reset on 127.0.0.1:8000
+From: webmaster@localhost
+To: zach.a.vance@gmail.com
+Date: Sun, 24 Sep 2023 20:54:45 -0000
+Message-ID: <169558888514.19364.10522113650861476652@FinalCountdown.lan>
+
+
+You're receiving this email because you requested a password reset for your user account at 127.0.0.1:8000.
+
+Please go to the following page and choose a new password:
+
+http://127.0.0.1:8000/accounts/reset/Mg/bv1g79-86ee5e51cfe95752674a58266ef96ebb/
+
+Your username, in case you’ve forgotten: zach
+
+Thanks for using our site!
+
+The 127.0.0.1:8000 team
+
+
+
+-------------------------------------------------------------------------------

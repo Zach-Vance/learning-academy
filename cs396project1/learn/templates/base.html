@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Learning Academy{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <style>
+    body {
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+
+    .navbar {
+      background-color: #4CAF50; /* Green */
+      color: white;
+    }
+
+    .navbar-brand, .nav-link {
+      color: white !important;
+    }
+
+    .navbar-brand:hover, .nav-link:hover {
+      color: #3e8e41 !important;
+    }
+
+    .container {
+      background-color: white;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="{% url 'home' %}">Learning Academy</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
+        <ul class="navbar-nav">
+          {% if user.is_authenticated %}
+          
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'home' %}">Discussions</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'lesson_feed' %}">Lessons</a>
+          </li>
+          <!-- <li class="nav-item">
+              <a class="nav-link" href="{% url 'create_post' %}">Create Discussion</a>
+          </li> -->
+          {% if not user.is_student %}
+            <!-- <li class="nav-item">
+              <a class="nav-link" href="{% url 'create_lesson' %}">Create Lesson</a>
+            </li> -->
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'teacher_quiz_list' %}">Quizzes</a>
+            </li>
+          {% elif user.is_student %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'student_quiz_list' %}">Available Quizzes</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'student_quiz_results' %}">Grades</a>
+            </li>
+          {% endif %}
+
+          {% if not user.is_student %}
+            {% if not user.is_teacher %}
+            <li class="nav-item">
+              <a class="nav-link" href="../admin">Admin Panel</a>
+            </li>
+            {% endif %}  
+          {% endif %}
+          <li class="nav-item">
+              <a class="nav-link" href="{% url 'logout' %}">Log Out</a>
+          </li>
+          
+        {% else %}
+          <li class="nav-item">
+              <a class="nav-link" href="{% url 'login' %}">Log In</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="{% url 'teacher_signup' %}">Teacher Registration</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="{% url 'student_signup' %}">Student Registration</a>
+          </li>
+        {% endif %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <br/>
+  <div class="container">
+    {% block content %}
+    {% endblock %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js" integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+</body>
+</html>
+
+
+
+

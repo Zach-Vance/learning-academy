@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% if user.is_authenticated %}
+      <h1 class="mt-4 text-center">Lessons</h1>
+      <div class="text-center my-3">
+          <span class="mr-2">Number of Lessons: {{ object_list|length }}</span> <br/><br/>
+          {% if not user.is_student %} 
+            </b><a href="{% url 'create_lesson' %}" class="btn btn-success">Add Lesson</a>
+          {% endif %}
+      </div>
+      <hr />
+      <div class="card">
+          <div class="card-body">
+              <table class="table table-bordered table-hover">
+                  <thead class="thead-dark">
+                      <tr>
+                          <th>Title</th>
+                          <th>Author</th>
+                          <th>Date</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      {% for lesson in object_list %}
+                          <tr>
+                              <td><a href="{% url 'lesson' lesson.pk %}">{{ lesson.title }}</a></td>
+                              <td>{{ lesson.author }}
+                              {% if lesson.author.is_teacher %}
+                                <i>(Teacher)</i>
+                              {% else %}
+                                <strong>(Admin)</strong>
+                              {% endif %}
+
+                              </td>
+                              <td>{{ lesson.date }}</td>
+                          </tr>
+                      {% empty %}
+                          <tr>
+                              <td colspan="3" class="text-center font-italic">There aren't any lessons</td>
+                          </tr>
+                      {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+      </div>
+</div>
+
+    {% else %}
+      <h1 class="mt-4 text-center display-4">Welcome to Learning Academy!</h1>
+      <div class="text-center my-4">
+          <p class="lead">
+              Please <a href="{% url 'login' %}" class="btn btn-primary btn-lg">Login</a> or register as a 
+              <a href="{% url 'student_signup' %}" class="btn btn-success btn-lg">Student</a> or a 
+              <a href="{% url 'teacher_signup' %}" class="btn btn-info btn-lg">Teacher</a>!
+          </p>
+          <p class="font-weight-bold">Your learning or teaching success starts with us!</p>
+      </div>
+    {% endif %}
+{% endblock %}

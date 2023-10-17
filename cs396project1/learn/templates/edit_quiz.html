@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <h2 class="mb-3">
+        Edit Quiz - "{{ quiz.name }}"
+      </h2>
+
+      <div class="row mb-3">
+        <div class="col-md-6 col-sm-8 col-12">
+          <!-- <form method="post" novalidate>
+            {% csrf_token %}
+            {{ form }}
+            <button type="submit" class="btn btn-success">Save changes</button> -->
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="row">
+            <div class="col-10">
+              <strong>Questions</strong>
+            </div>
+            <div class="col-2">
+              <strong>Answers</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="list-group list-group-flush list-group-formset">
+          {% for question in questions %}
+            <div class="list-group-item">
+              <div class="row">
+                <div class="col-10">
+                  <a href="{% url 'question_change' quiz.pk question.pk %}">{{ question.text }}</a>
+                </div>
+                <div class="col-2">
+                  {{ question.answers_count }}
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="list-group-item text-center">
+              <p class="text-muted font-italic mb-0">You haven't added any questions yet.</p>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="card-footer">
+        </div>  
+      </div>
+      <br/>
+
+      <!-- <a href="{% url 'quiz_results' quiz.pk %}" class="btn btn-primary float-right">View results</a> -->
+      <a href="{% url 'question_add' quiz.pk %}" class="btn btn-primary btn">Add question</a>
+
+      <a href="{% url 'quiz_delete' quiz.pk %}" class="btn btn-danger float-right">Delete</a>
+      <br/>
+      <br/>
+      <!-- <a href="{% url 'teacher_quiz_list' %}" class="btn btn-outline-secondary" role="button">Back</a> -->
+    </div>
+  </div>
+{% endblock %}

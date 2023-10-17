@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load hitcount_tags %}
+
+{% block title %}
+    Lesson - {{ lesson.title }}
+{% endblock %}
+
+{% block content %}
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                {% if not user.is_authenticated %}
+                    <p class="mt-5">
+                        Please <a href="{% url 'login' %}">login</a> to see this lesson.
+                    </p>
+                {% else %}
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h1>{{ lesson.title }}</h1>
+                        <p>
+                            <small>
+                                By: {{ lesson.author }} | {{ lesson.date }} | Views: {% get_hit_count for lesson %}
+                            </small>
+                        </p>
+                        <hr>
+                        {{ lesson.body | safe }}
+
+                        {% if lesson.image %}
+                            <div>
+                                <img src="{{lesson.image.url}}" alt="Lesson Image">
+                                <br>
+                                <a href="{{ lesson.image.url }}" download>Download image</a>
+                                <a href="{{ lesson.image.url }}" target="_blank">View image</a>
+                            </div>
+                        {% endif %}
+
+                        {% if lesson.youtubevideo %}
+                            <div >
+                                {{ lesson.youtubevideo | safe }}
+                            </div>
+                            <hr>
+                        {% endif %}
+
+                        <hr>
+
+                        {% if lesson.video %}
+                            <video width="720" height="480" controls>
+                                <source src="{{ lesson.video.url }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            <br/>
+                            <a href="{{ lesson.video.url }}" download>Download video</a>
+                            <a href="{{ lesson.video.url }}" target="_blank">View video</a>
+                        {% endif %}
+
+                        {% if lesson.file1 %}
+                                File : <a href="{{ lesson.file1.url }}" download>Download file</a>
+                                <!-- <a href=" {{lesson.file1.url}} " target="_blank"> View file</a>  -->
+                                <br/>
+                            {% endif %}
+                            {% if lesson.file2 %}
+                                File : <a href="{{ lesson.file2.url }}" download>Download file</a>
+                                <!-- <a href=" {{lesson.file2.url}} " target="_blank"> View file</a>  -->
+                                <br/>
+                            {% endif %}
+                            {% if lesson.file3 %}
+                                File : <a href="{{ lesson.file3.url }}" download>Download file</a>
+                                <!-- <a href=" {{lesson.file3.url}} " target="_blank"> View file</a>  -->
+                                <br/>
+                            {% endif %}
+
+                        <br><br>
+                {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        </div>
+        <a href="{% url 'lesson_feed' %}" class="btn btn-primary">Back</a>
+{% endblock %}
