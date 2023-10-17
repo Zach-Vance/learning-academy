@@ -9,9 +9,14 @@ from django.core.validators import FileExtensionValidator
 # Set User model to the one specified in settings
 User = settings.AUTH_USER_MODEL
 
+# Define Subjects Table
+class Subject(models.Model):
+    name = models.CharField(max_length=255)
+
 # Define the Post model
 class Post(models.Model):
     # Fields for the Post model
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     body = RichTextField(blank=True, null=True)
@@ -34,6 +39,7 @@ class Post(models.Model):
 # Define the Lesson model
 class Lesson(models.Model):
     # Fields for the Lesson model
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     body = RichTextField(blank=True, null=True)
@@ -73,6 +79,7 @@ class Comment(models.Model):
 # Define the Quiz model
 class Quiz(models.Model):
     # Fields for the Quiz model
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='quizzes')
     name = models.CharField(max_length=255)
 
@@ -94,6 +101,7 @@ class Student(models.Model):
 # Define the Question model
 class Question(models.Model):
     # Fields for the Question model
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='questions')
     text = models.CharField('Question', max_length=255)
 
@@ -125,3 +133,33 @@ class StudentAnswer(models.Model):
     # Fields for the StudentAnswer model
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='quiz_answers')
     answer = models.ForeignKey(Answer, on_delete=models.CASCADE, related_name='+')
+
+
+# Define StudentSubjectScore Table
+class StudentSubjectScore(models.Model):
+    student = models.ForeignKey(User, related_name='subject_scores', on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    score = models.IntegerField()
+
+# Define StudentQuestionAnswer Table
+class StudentQuestionAnswer(models.Model):
+    student = models.ForeignKey(User, related_name='question_answers', on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    question_number = models.IntegerField()
+    answer = models.TextField()
+
+# Define QuestionAttempts Table
+class QuestionAttempts(models.Model):
+    student = models.ForeignKey(User, related_name='question_attempts', on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    question_number = models.IntegerField()
+    attempts = models.IntegerField()
+
+# Define TeacherSubjectView Table (This would be implemented as a database view in practice)
+class TeacherSubjectView(models.Model):
+    teacher = models.ForeignKey(User, related_name='teacher_views', on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    student = models.ForeignKey(User, related_name='student_views', on_delete=models.CASCADE)
+    score = models.IntegerField()
+    question_number = models.IntegerField()
+    attempts = models.IntegerField()

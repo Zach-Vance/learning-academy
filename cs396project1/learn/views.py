@@ -276,39 +276,39 @@ def take_quiz(request, pk):
     quiz = get_object_or_404(Quiz, pk=pk)
     student = request.user.student
 
-    question_list = student.get_questions(quiz)
+    if student.quizzes.filter(pk=pk).exists():
+        return render(request, 'students/taken_quiz.html')
+
+    total_questions = quiz.questions.count()
+    unanswered_questions = student.get_unanswered_questions(quiz)
+    total_unanswered_questions = unanswered_questions.count()
+    progress = 100 - round(((total_unanswered_questions - 1) / total_questions) * 100)
+    question = unanswered_questions.first()
 
     if request.method == 'POST':
-        answers = []
-        correct_answers_count = 0
+        form = TakeQuizForm(question=question, data=request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                student_answer = form.save(commit=False)
+                student_answer.student = student
+                student_answer.save()
+                if student.get_unanswered_questions(quiz).exists():
+                    return redirect('students:take_quiz', pk)
+                else:
+                    correct_answers = student.quiz_answers.filter(answer__question__quiz=quiz, answer__is_correct=True).count()
+                    score = round((correct_answers / total_questions) * 100.0, 2)
+                    TakenQuiz.objects.create(student=student, quiz=quiz, score=score)
+                    if score < 50.0:
+                        messages.warning(request, 'Better luck next time! Your score for the quiz %s was %s.' % (quiz.name, score))
+                    else:
+                        messages.success(request, 'Congratulations! You completed the quiz %s with success! You scored %s points.' % (quiz.name, score))
+                    return redirect('students:quiz_list')
+    else:
+        form = TakeQuizForm(question=question)
 
-        for question in question_list:
-            form = TakeQuizForm(question=question, data=request.POST)
-            if form.is_valid():
-                answer = form.cleaned_data['answer']
-                answers.append(StudentAnswer(student=student, answer=answer))
-
-                # Check if the answer is correct
-                if answer.is_correct:
-                    correct_answers_count += 1
-
-        # Calculate the score
-        total_questions = len(question_list)
-        if total_questions > 0:
-            score = (correct_answers_count / total_questions) * 100.0
-        else:
-            score = 0.0
-
-        # Save student's answers and score
-        StudentAnswer.objects.bulk_create(answers)
-        TakenQuiz.objects.create(student=student, quiz=quiz, score=50)
-
-        # Display the quiz results
-        return redirect('student_quiz_results')
-
-    questions_and_forms = [(question, TakeQuizForm(question=question)) for question in question_list]
-
-    return render(request, 'take_quiz.html', {
+    return render(request, 'classroom/students/take_quiz_form.html', {
         'quiz': quiz,
-        'questions_and_forms': questions_and_forms,
+        'question': question,
+        'form': form,
+        'progress': progress
     })

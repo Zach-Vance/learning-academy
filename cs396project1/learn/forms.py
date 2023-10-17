@@ -102,3 +102,14 @@ class TakeQuizForm(forms.Form):
 
         return cleaned_data
 
+class QuizAnswerForm(forms.ModelForm):
+    class Meta:
+        model = StudentAnswer
+        fields = ['answer']
+        
+    def clean_answer(self):
+        # Perform additional validation if needed
+        answer = self.cleaned_data.get('answer')
+        if not answer:
+            raise forms.ValidationError("You must select an answer.")
+        return answer

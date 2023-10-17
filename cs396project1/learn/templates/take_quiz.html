@@ -1,20 +1,24 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <h1>Take Quiz: {{ quiz.name }}</h1>
+  <h2>{{ quiz.name }}</h2>
   <form method="post">
     {% csrf_token %}
+    
     {% for question, form in questions_and_forms %}
       <fieldset>
         <legend>{{ question.text }}</legend>
-        {% for answer in question.answers.all %}
+        
+        {% for radio in form.answer %}
           <label>
-            <input type="radio" name="answer_{{ question.id }}" value="{{ answer.id }}">
-            {{ answer.text }}
+            {{ radio.tag }}
+            {{ radio.choice_label }}
           </label><br>
         {% endfor %}
+        
       </fieldset>
     {% endfor %}
-    <button type="submit">Submit</button>
+    
+    <button type="submit">Submit Quiz</button>
   </form>
 {% endblock %}
