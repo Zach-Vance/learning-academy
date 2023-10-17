@@ -275,40 +275,37 @@ class TakenQuizListView(ListView):
 def take_quiz(request, pk):
     quiz = get_object_or_404(Quiz, pk=pk)
     student = request.user.student
-
-    if student.quizzes.filter(pk=pk).exists():
-        return render(request, 'students/taken_quiz.html')
-
-    total_questions = quiz.questions.count()
-    unanswered_questions = student.get_unanswered_questions(quiz)
-    total_unanswered_questions = unanswered_questions.count()
-    progress = 100 - round(((total_unanswered_questions - 1) / total_questions) * 100)
-    question = unanswered_questions.first()
-
+    
+    # Fetch all questions related to the quiz
+    all_questions = Question.objects.filter(quiz=quiz)
+    
     if request.method == 'POST':
-        form = TakeQuizForm(question=question, data=request.POST)
+        form = TakeQuizForm(data=request.POST)
         if form.is_valid():
             with transaction.atomic():
-                student_answer = form.save(commit=False)
-                student_answer.student = student
-                student_answer.save()
-                if student.get_unanswered_questions(quiz).exists():
-                    return redirect('students:take_quiz', pk)
-                else:
-                    correct_answers = student.quiz_answers.filter(answer__question__quiz=quiz, answer__is_correct=True).count()
-                    score = round((correct_answers / total_questions) * 100.0, 2)
-                    TakenQuiz.objects.create(student=student, quiz=quiz, score=score)
-                    if score < 50.0:
-                        messages.warning(request, 'Better luck next time! Your score for the quiz %s was %s.' % (quiz.name, score))
-                    else:
-                        messages.success(request, 'Congratulations! You completed the quiz %s with success! You scored %s points.' % (quiz.name, score))
-                    return redirect('students:quiz_list')
+                # Save student's answers
+                for question in all_questions:
+                    answer = form.cleaned_data.get(str(question.id))
+                    StudentAnswer.objects.create(student=student, question=question, answer=answer)
+                
+                # Calculate and save the quiz score
+                correct_answers_count = StudentAnswer.objects.filter(
+                    student=student, 
+                    question__in=all_questions, 
+                    answer__is_correct=True
+                ).count()
+                score = round((correct_answers_count / all_questions.count()) * 100, 2)
+                TakenQuiz.objects.create(student=student, quiz=quiz, score=score)
+                
+                # Redirect to quiz results or another page
+                return redirect('students:quiz_results', pk)
+                
     else:
-        form = TakeQuizForm(question=question)
-
+        # Initialize form with all questions
+        form = TakeQuizForm(questions=all_questions)
+    
     return render(request, 'classroom/students/take_quiz_form.html', {
         'quiz': quiz,
-        'question': question,
         'form': form,
-        'progress': progress
     })
+
