@@ -13,6 +13,9 @@ User = settings.AUTH_USER_MODEL
 class Subject(models.Model):
     name = models.CharField(max_length=255)
 
+    def __str__(self):
+        return self.name 
+    
 # Define the Post model
 class Post(models.Model):
     # Fields for the Post model
@@ -101,13 +104,17 @@ class Student(models.Model):
 # Define the Question model
 class Question(models.Model):
     # Fields for the Question model
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, null=True, blank=True, on_delete=models.CASCADE)
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='questions')
     text = models.CharField('Question', max_length=255)
 
     # Method to return a string representation of the object
     def __str__(self):
         return self.text
+    
+    def save(self, *args, **kwargs):
+        self.subject = self.quiz.subject
+        super(Question, self).save(*args, **kwargs)
 
 # Define the Answer model
 class Answer(models.Model):
@@ -127,39 +134,58 @@ class TakenQuiz(models.Model):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='taken_quizzes')
     score = models.FloatField()
     date = models.DateTimeField(auto_now_add=True)
+    attempt_number = models.IntegerField()  
 
 # Define the StudentAnswer model
+# class StudentAnswer(models.Model):
+#     # Fields for the StudentAnswer model
+#     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='quiz_answers')
+#     answer = models.ForeignKey(Answer, on_delete=models.CASCADE, related_name='+')
+
 class StudentAnswer(models.Model):
-    # Fields for the StudentAnswer model
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='quiz_answers')
-    answer = models.ForeignKey(Answer, on_delete=models.CASCADE, related_name='+')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    taken_quiz = models.ForeignKey(TakenQuiz, on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
 
-
-# Define StudentSubjectScore Table
-class StudentSubjectScore(models.Model):
-    student = models.ForeignKey(User, related_name='subject_scores', on_delete=models.CASCADE)
+class SubjectStudentScore(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    score = models.IntegerField()
+    total_score = models.IntegerField()
 
-# Define StudentQuestionAnswer Table
-class StudentQuestionAnswer(models.Model):
-    student = models.ForeignKey(User, related_name='question_answers', on_delete=models.CASCADE)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    question_number = models.IntegerField()
-    answer = models.TextField()
+# SubjectQuestionAnswer model
+class SubjectQuestionAnswer(models.Model):
+    user = models.ForeignKey(User, related_name='question_answers', on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, related_name='question_answers', on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, related_name='question_answers', on_delete=models.CASCADE)
+    answer_submitted = models.TextField()
 
-# Define QuestionAttempts Table
-class QuestionAttempts(models.Model):
-    student = models.ForeignKey(User, related_name='question_attempts', on_delete=models.CASCADE)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    question_number = models.IntegerField()
-    attempts = models.IntegerField()
+# SubjectQuestionAttempt model
+class SubjectQuestionAttempt(models.Model):
+    user = models.ForeignKey(User, related_name='question_attempts', on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, related_name='question_attempts', on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, related_name='question_attempts', on_delete=models.CASCADE)
+    attempt_number = models.IntegerField()
+    answer_submitted = models.TextField()
+    is_correct = models.BooleanField(default=False)
 
-# Define TeacherSubjectView Table (This would be implemented as a database view in practice)
-class TeacherSubjectView(models.Model):
-    teacher = models.ForeignKey(User, related_name='teacher_views', on_delete=models.CASCADE)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    student = models.ForeignKey(User, related_name='student_views', on_delete=models.CASCADE)
-    score = models.IntegerField()
-    question_number = models.IntegerField()
-    attempts = models.IntegerField()
+
+
+# class SubjectStudentScore(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+#     total_score = models.IntegerField()
+
+# class SubjectQuestionAnswer(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+#     question = models.ForeignKey(Question, on_delete=models.CASCADE)
+#     answer_submitted = models.TextField()
+
+# class SubjectQuestionAttempt(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+#     question = models.ForeignKey(Question, on_delete=models.CASCADE)
+#     attempt_number = models.IntegerField()
+#     answer_submitted = models.TextField()
+#     is_correct = models.BooleanField()

@@ -104,7 +104,7 @@ class QuizListView(ListView):
 # Define a view for creating a new quiz
 class QuizCreateView(CreateView):
     model = Quiz
-    fields = ('name', )
+    fields = ('name', 'subject')
     template_name = 'create_quiz.html'
 
     def form_valid(self, form):
@@ -272,40 +272,109 @@ class TakenQuizListView(ListView):
         return queryset
 
 # Define a view for taking a quiz
-def take_quiz(request, pk):
-    quiz = get_object_or_404(Quiz, pk=pk)
-    student = request.user.student
-    
-    # Fetch all questions related to the quiz
-    all_questions = Question.objects.filter(quiz=quiz)
-    
-    if request.method == 'POST':
-        form = TakeQuizForm(data=request.POST)
-        if form.is_valid():
-            with transaction.atomic():
-                # Save student's answers
-                for question in all_questions:
-                    answer = form.cleaned_data.get(str(question.id))
-                    StudentAnswer.objects.create(student=student, question=question, answer=answer)
-                
-                # Calculate and save the quiz score
-                correct_answers_count = StudentAnswer.objects.filter(
-                    student=student, 
-                    question__in=all_questions, 
-                    answer__is_correct=True
-                ).count()
-                score = round((correct_answers_count / all_questions.count()) * 100, 2)
-                TakenQuiz.objects.create(student=student, quiz=quiz, score=score)
-                
-                # Redirect to quiz results or another page
-                return redirect('students:quiz_results', pk)
-                
-    else:
-        # Initialize form with all questions
-        form = TakeQuizForm(questions=all_questions)
-    
-    return render(request, 'classroom/students/take_quiz_form.html', {
-        'quiz': quiz,
-        'form': form,
-    })
+# def take_quiz(request, pk):
+#     quiz = get_object_or_404(Quiz, pk=pk)
+#     student = request.user.student
 
+#     if student.quizzes.filter(pk=pk).exists():
+#         return render(request, 'students/taken_quiz.html')
+
+#     total_questions = quiz.questions.count()
+#     unanswered_questions = student.get_unanswered_questions(quiz)
+#     total_unanswered_questions = unanswered_questions.count()
+#     progress = 100 - round(((total_unanswered_questions - 1) / total_questions) * 100)
+#     question = unanswered_questions.first()
+
+#     if request.method == 'POST':
+#         form = TakeQuizForm(question=question, data=request.POST)
+#         if form.is_valid():
+#             with transaction.atomic():
+#                 student_answer = form.save(commit=False)
+#                 student_answer.student = student
+#                 student_answer.save()
+#                 if student.get_unanswered_questions(quiz).exists():
+#                     return redirect('students:take_quiz', pk)
+#                 else:
+#                     correct_answers = student.quiz_answers.filter(answer__question__quiz=quiz, answer__is_correct=True).count()
+#                     score = round((correct_answers / total_questions) * 100.0, 2)
+#                     TakenQuiz.objects.create(student=student, quiz=quiz, score=score)
+#                     if score < 50.0:
+#                         messages.warning(request, 'Better luck next time! Your score for the quiz %s was %s.' % (quiz.name, score))
+#                     else:
+#                         messages.success(request, 'Congratulations! You completed the quiz %s with success! You scored %s points.' % (quiz.name, score))
+#                     return redirect('students:quiz_list')
+#     else:
+#         form = TakeQuizForm(question=question)
+
+#     return render(request, 'classroom/students/take_quiz_form.html', {
+#         'quiz': quiz,
+#         'question': question,
+#         'form': form,
+#         'progress': progress
+#     })
+
+
+# views.py
+
+# 
+
+
+def take_quiz(request, pk):
+    quiz = Quiz.objects.get(id=pk)
+    student = request.user.student
+    if TakenQuiz.objects.filter(student=student, quiz=quiz).exists():
+        return HttpResponseForbidden('You have already attempted this quiz.')
+    
+    questions = student.get_questions(quiz)
+    return render(request, 'take_quiz.html', {'quiz': quiz, 'questions': questions})
+
+
+from django.http import HttpResponseRedirect, HttpResponseNotAllowed
+
+def submit_quiz(request, quiz_id):
+    if request.method == 'POST':    
+        student = request.user.student
+        quiz = Quiz.objects.get(id=quiz_id)
+
+        # Check existing attempts
+        attempts = TakenQuiz.objects.filter(student=student, quiz=quiz).count()
+        if attempts >= 3:
+            return HttpResponseForbidden('You have reached the maximum number of attempts for this quiz.')
+
+        # Capture and validate submitted answers
+        score = 0
+        for question in quiz.questions.all():
+            submitted_answer = request.POST.get(str(question.id))
+            if submitted_answer is not None:
+                answer = Answer.objects.get(id=submitted_answer)
+                if answer.is_correct:
+                    score += 1
+
+        # Store the quiz attempt
+        attempt_number = attempts + 1
+
+
+    # Store the quiz attempt
+        taken_quiz = TakenQuiz.objects.create(
+            student=student,
+            quiz=quiz,
+            score=score,
+            attempt_number=attempt_number
+        )
+
+        # Store answers for review by students
+        for question in quiz.questions.all():
+            submitted_answer_id = request.POST.get(str(question.id))
+            if submitted_answer_id:
+                answer = Answer.objects.get(id=submitted_answer_id)
+                StudentAnswer.objects.create(
+                    student=student,
+                    taken_quiz=taken_quiz,
+                    question=question,
+                    answer=answer
+                )
+
+        return HttpResponseRedirect('student_quiz_results.html')
+
+    else:
+        return HttpResponseNotAllowed('This view can only handle POST requests.')

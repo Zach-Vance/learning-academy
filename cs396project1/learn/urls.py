@@ -17,6 +17,7 @@ from .views import (HomeView,
                     StudentQuizListView,
                     TakenQuizListView,
                     take_quiz,
+                    submit_quiz,
                     )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -40,4 +41,5 @@ urlpatterns = [
     path('student_quiz_list/', StudentQuizListView.as_view(), name='student_quiz_list'),
     path('student_quiz_results/', TakenQuizListView.as_view(), name='student_quiz_results'),
     path('student_quiz/<int:pk>/', take_quiz, name='take_quiz'),
+    path('submit_quiz/<int:quiz_id>/', submit_quiz, name='submit_quiz'),
 ] 
