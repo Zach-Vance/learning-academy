@@ -16,6 +16,7 @@
                   <thead class="thead-dark">
                       <tr>
                           <th>Title</th>
+                          <th>Subject</th>
                           <th>Posted By</th>
                           <th>Date</th>
                       </tr>
@@ -24,6 +25,7 @@
                       {% for post in object_list %}
                           <tr>
                               <td><a href="{% url 'post' post.pk %}">{{ post.title }}</a></td>
+                              <td> {{ post.subject }}</td>
                               <td>{{ post.author }} 
                                 {% if post.author.is_student %}
                                   (Student)

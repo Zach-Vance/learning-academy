@@ -1,7 +1,7 @@
 from django.shortcuts import render,redirect 
 from django.contrib import messages
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
-from .models import Post, Lesson, Quiz, Question, Answer, TakenQuiz, StudentAnswer
+from .models import Post, Lesson, Quiz, Question, Answer, TakenQuiz, StudentAnswer, Subject
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from django.forms import inlineformset_factory
@@ -14,6 +14,7 @@ from django.db.models import Avg, Count
 from django.views.generic.edit import FormMixin
 from django.urls import reverse_lazy
 from django.urls import reverse
+from django.db.models import Max
 User = settings.AUTH_USER_MODEL
 
 # Define a view for the home page
@@ -159,6 +160,9 @@ class QuizResultsView(DetailView):
         taken_quizzes = quiz.taken_quizzes.select_related('student__user').order_by('-date')
         total_taken_quizzes = taken_quizzes.count()
         quiz_score = quiz.taken_quizzes.aggregate(average_score=Avg('score'))
+        # Round to two decimal points
+        if quiz_score['average_score'] is not None:
+            quiz_score['average_score'] = round(quiz_score['average_score'], 2)
         extra_context = {
             'taken_quizzes': taken_quizzes,
             'total_taken_quizzes': total_taken_quizzes,
@@ -248,15 +252,40 @@ class QuestionDeleteView(DeleteView):
         return reverse('edit_quiz', kwargs={'pk': question.quiz_id})
 
 # Define a view for displaying a list of quizzes for a student
+from django.db.models import Count
+
 class StudentQuizListView(ListView):
     model = Quiz
-    ordering = ('name', )
+    ordering = ('name',)
     context_object_name = 'quizzes'
     template_name = 'student_quiz_list.html'
 
-    # Override the get_queryset method to customize the queryset
     def get_queryset(self):
-        return Quiz.objects.all()
+        student = self.request.user.student
+        all_quizzes = Quiz.objects.all()
+        available_quizzes = []
+        for quiz in all_quizzes:
+            num_attempts = TakenQuiz.objects.filter(student=student, quiz=quiz).count()
+            if num_attempts < 3:
+                quiz.num_attempts = num_attempts  # Attach the number of attempts to the quiz object
+                quiz.questions_count = quiz.questions.count()  # Attach the number of questions to the quiz object
+                available_quizzes.append(quiz)
+        return available_quizzes
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        student = self.request.user.student
+
+        # Add the number of attempts and questions for each quiz to the context
+        quiz_details = {}
+        for quiz in context['quizzes']:
+            num_attempts = TakenQuiz.objects.filter(student=student, quiz=quiz).count()
+            num_questions = Question.objects.filter(quiz=quiz).count()
+            quiz_details[quiz.id] = {'attempts': num_attempts, 'questions': num_questions}
+
+        context['quiz_details'] = quiz_details
+        return context
+
 
 # Define a view for displaying a list of taken quizzes for a student
 class TakenQuizListView(ListView):
@@ -271,65 +300,27 @@ class TakenQuizListView(ListView):
             .order_by('quiz__name')
         return queryset
 
-# Define a view for taking a quiz
-# def take_quiz(request, pk):
-#     quiz = get_object_or_404(Quiz, pk=pk)
-#     student = request.user.student
-
-#     if student.quizzes.filter(pk=pk).exists():
-#         return render(request, 'students/taken_quiz.html')
-
-#     total_questions = quiz.questions.count()
-#     unanswered_questions = student.get_unanswered_questions(quiz)
-#     total_unanswered_questions = unanswered_questions.count()
-#     progress = 100 - round(((total_unanswered_questions - 1) / total_questions) * 100)
-#     question = unanswered_questions.first()
-
-#     if request.method == 'POST':
-#         form = TakeQuizForm(question=question, data=request.POST)
-#         if form.is_valid():
-#             with transaction.atomic():
-#                 student_answer = form.save(commit=False)
-#                 student_answer.student = student
-#                 student_answer.save()
-#                 if student.get_unanswered_questions(quiz).exists():
-#                     return redirect('students:take_quiz', pk)
-#                 else:
-#                     correct_answers = student.quiz_answers.filter(answer__question__quiz=quiz, answer__is_correct=True).count()
-#                     score = round((correct_answers / total_questions) * 100.0, 2)
-#                     TakenQuiz.objects.create(student=student, quiz=quiz, score=score)
-#                     if score < 50.0:
-#                         messages.warning(request, 'Better luck next time! Your score for the quiz %s was %s.' % (quiz.name, score))
-#                     else:
-#                         messages.success(request, 'Congratulations! You completed the quiz %s with success! You scored %s points.' % (quiz.name, score))
-#                     return redirect('students:quiz_list')
-#     else:
-#         form = TakeQuizForm(question=question)
-
-#     return render(request, 'classroom/students/take_quiz_form.html', {
-#         'quiz': quiz,
-#         'question': question,
-#         'form': form,
-#         'progress': progress
-#     })
-
-
-# views.py
-
-# 
 
 
 def take_quiz(request, pk):
     quiz = Quiz.objects.get(id=pk)
     student = request.user.student
-    if TakenQuiz.objects.filter(student=student, quiz=quiz).exists():
-        return HttpResponseForbidden('You have already attempted this quiz.')
-    
+
+    # Count the number of attempts for this quiz by this student
+    num_attempts = TakenQuiz.objects.filter(student=student, quiz=quiz).count()
+
+    # Check if the student has already attempted this quiz 3 times
+    if num_attempts >= 3:
+        return HttpResponseForbidden('You have already attempted this quiz 3 times.')
+
     questions = student.get_questions(quiz)
     return render(request, 'take_quiz.html', {'quiz': quiz, 'questions': questions})
 
 
+
 from django.http import HttpResponseRedirect, HttpResponseNotAllowed
+
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseNotAllowed, HttpResponseRedirect
 
 def submit_quiz(request, quiz_id):
     if request.method == 'POST':    
@@ -343,6 +334,7 @@ def submit_quiz(request, quiz_id):
 
         # Capture and validate submitted answers
         score = 0
+        total_questions = quiz.questions.count()
         for question in quiz.questions.all():
             submitted_answer = request.POST.get(str(question.id))
             if submitted_answer is not None:
@@ -350,15 +342,15 @@ def submit_quiz(request, quiz_id):
                 if answer.is_correct:
                     score += 1
 
+        # Calculate the score out of 100
+        percentage_score = round((score / total_questions) * 100, 2)
+
         # Store the quiz attempt
         attempt_number = attempts + 1
-
-
-    # Store the quiz attempt
         taken_quiz = TakenQuiz.objects.create(
             student=student,
             quiz=quiz,
-            score=score,
+            score=percentage_score,  # Store the percentage score
             attempt_number=attempt_number
         )
 
@@ -374,7 +366,55 @@ def submit_quiz(request, quiz_id):
                     answer=answer
                 )
 
-        return HttpResponseRedirect('student_quiz_results.html')
+        return HttpResponseRedirect('../../student_quiz_results')
 
     else:
         return HttpResponseNotAllowed('This view can only handle POST requests.')
+    
+
+def view_attempt(request, attempt_id):
+    taken_quiz = get_object_or_404(TakenQuiz, id=attempt_id)
+    student_answers = StudentAnswer.objects.filter(taken_quiz=taken_quiz)
+    is_third_attempt = (taken_quiz.attempt_number == 3)
+
+    context = {
+        'taken_quiz': taken_quiz,
+        'student_answers': student_answers,
+        'is_third_attempt': is_third_attempt,
+    }
+
+    return render(request, 'view_attempt.html', context)
+
+
+def subjects_view(request):
+    subjects = Subject.objects.all()
+    return render(request, 'subjects.html', {'subjects': subjects})
+
+def subject_detail_view(request, subject_id):
+    # Get the subject
+    subject = get_object_or_404(Subject, id=subject_id)
+
+    # Get all distinct student-quiz pairs
+    distinct_student_quizzes = TakenQuiz.objects.filter(quiz__subject=subject).values('student', 'quiz').distinct()
+
+    total_score = 0
+    count = 0
+
+    for item in distinct_student_quizzes:
+        student_id = item['student']
+        quiz_id = item['quiz']
+
+        # Get the latest attempt for this student-quiz pair
+        latest_attempt = TakenQuiz.objects.filter(student_id=student_id, quiz_id=quiz_id).aggregate(Max('attempt_number'))
+        latest_score = TakenQuiz.objects.get(student_id=student_id, quiz_id=quiz_id, attempt_number=latest_attempt['attempt_number__max']).score
+
+        total_score += latest_score
+        count += 1
+
+    # Calculate the average score
+    average_quiz_score = total_score / count if count else 0
+
+    return render(request, 'subject_detail.html', {
+        'subject': subject,
+        'average_quiz_score': average_quiz_score 
+    })

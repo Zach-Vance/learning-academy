@@ -6,7 +6,7 @@ from .models import Post, Comment, Lesson, Answer, Question, Student, StudentAns
 class LessonForm(forms.ModelForm):
     class Meta:
         model = Lesson
-        fields = ('title', 'author', 'body', 'file1', 'file2', 'file3', 'image', 'video', 'youtubevideo')
+        fields = ('subject', 'title', 'author', 'body', 'file1', 'file2', 'file3', 'image', 'video', 'youtubevideo')
 
         # Define form field widgets for rendering HTML elements
         widgets = {
@@ -25,7 +25,7 @@ class LessonForm(forms.ModelForm):
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        fields = ('title', 'author', 'body', 'file1', 'file2', 'file3')
+        fields = ('subject', 'title', 'author', 'body', 'file1', 'file2', 'file3')
 
         # Define form field widgets for rendering HTML elements
         widgets = {
