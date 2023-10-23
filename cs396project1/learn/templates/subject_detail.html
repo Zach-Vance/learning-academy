@@ -1,66 +1,132 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h2 class="mt-4 text-center">{{ subject.name }}</h2>
+<style>
+   
+    .section-card {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+        margin-bottom: 2rem; 
+    }
+    .section-card-header {
+        background-color: #ddf7ddfa; 
+        font-size: 1.5rem; 
+    }
+    .section-card-body {
+        padding: 1.5rem;
+    }
+    .table th, .table td {
+        vertical-align: middle; 
+    }
+</style>
 
-    <!-- Aggregate Quiz Score -->
-    <h3>Average Quiz Score: {{ average_quiz_score|floatformat:2 }}%</h3>
-
+{% if user.is_authenticated %}
+<h2 class="mt-4 text-center mb-5">{{ subject.name }}</h2>
+<hr/>
+{%if user.is_student %}
+<div class="section-card">
+    <div class="section-card-header">Available Quizzes</div>
+    <div class="section-card-body">
         <!-- Quizzes Table -->
-    <h3>Available Quizzes</h3>
-    <table class="table">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Quiz</th>
+                    <th>Length</th>
+                    <th>Number of Attempts</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quiz in quizzes %}
+                    <tr>
+                        <td>{{ quiz.name }}</td>
+                        <td>{{ quiz.questions_count }} questions</td>
+                        <td>{{ quiz.num_attempts }}</td>
+                        <td><a href="{% url 'take_quiz' quiz.id %}" class="btn btn-primary">Start quiz</a></td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center font-italic">There are no quizzes for this subject.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<hr/>
+<div class="section-card">
+    <div class="section-card-header">Taken Quizzes</div>
+    <div class="section-card-body">
+        <h6>Average Quiz Score: {{ average_quiz_score|floatformat:2 }}%</h6>
+        <!-- Taken Quizzes Table -->
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Quiz</th>
+                    <th>Attempt</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for taken_quiz in taken_quizzes %}
+                    <tr>
+                        <td><a href="{% url 'view_attempt' taken_quiz.id %}">{{ taken_quiz.quiz.name }}</a></td>
+                        <td>{{ taken_quiz.attempt_number }}</td>
+                        <td>{{ taken_quiz.score }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center font-italic">You haven't taken any quizzes for this subject yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<hr/>
+{% else %}
+<div class="section-card">
+    <div class="section-card-header">Quizzes</div>
+    <div class="section-card-body">
+        <h6>Average Quiz Score: {{ average_quiz_score|floatformat:2 }}%</h6>
+        <!-- Quizzes Table -->
+        <table class="table">
         <thead>
             <tr>
                 <th>Quiz</th>
-                <th>Length</th>
-                <th>Number of Attempts</th>
-                <th>Action</th>
+                <th>Questions</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
             {% for quiz in quizzes %}
                 <tr>
-                    <td>{{ quiz.name }}</td>
-                    <td>{{ quiz.questions_count }} questions</td>
-                    <td>{{ quiz.num_attempts }}</td>
-                    <td><a href="{% url 'take_quiz' quiz.id %}" class="btn btn-primary">Start quiz</a></td>
+                    <td><a href="{% url 'edit_quiz' quiz.pk %}">{{ quiz.name }}</a></td>
+                    <td>{{ quiz.questions_count }}</td>
+                    <td class="text-right">
+                        <a href="{% url 'quiz_results' quiz.pk %}" class="btn btn-primary">View Results</a>
+                    </td>
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="4" class="text-center font-italic">There are no quizzes for this subject.</td>
+                    <td colspan="4" class="text-center font-italic">There are no quizzes for this subject yet.</td>
                 </tr>
             {% endfor %}
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+        {% if not user.is_student %} 
+        <a href="{% url 'quiz_add' %}" class="btn btn-success" role="button">Add Quiz</a>
+        {% endif %}
+    </div>
+</div>
+<hr/>
+{% endif %}
 
-    <!-- Taken Quizzes Table -->
-    <h3>Taken Quizzes</h3>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Quiz</th>
-                <th>Attempt</th>
-                <th>Score</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for taken_quiz in taken_quizzes %}
-                <tr>
-                    <td><a href="{% url 'view_attempt' taken_quiz.id %}">{{ taken_quiz.quiz.name }}</a></td>
-                    <td>{{ taken_quiz.attempt_number }}</td>
-                    <td>{{ taken_quiz.score }}</td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="3" class="text-center font-italic">You haven't taken any quizzes for this subject yet.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <!-- Posts Table -->
-    <h3>Posts</h3>
-    <table class="table">
+<div class="section-card">
+    <div class="section-card-header">Posts</div>
+    <div class="section-card-body">
+        <!-- Posts Table -->
+        <table class="table">
         <thead>
             <tr>
                 <th>Title</th>
@@ -90,10 +156,14 @@
             {% endfor %}
         </tbody>
     </table>
-
-
+    <a href="{% url 'create_post' %}" class="btn btn-success">Add Post</a>
+</div>
+</div>
+<hr/>
+<div class="section-card">
+<div class="section-card-header">Lessons</div>
+<div class="section-card-body">
     <!-- Lessons Table -->
-    <h3>Lessons</h3>
     <table class="table">
         <thead>
             <tr>
@@ -123,7 +193,15 @@
             {% endfor %}
         </tbody>
     </table>
-    
+    {% if not user.is_student %} 
+        </b><a href="{% url 'create_lesson' %}" class="btn btn-success">Add Lesson</a>
+    {% endif %}
+</div>
+</div>
+{% else %}
+<div class="alert alert-warning mt-4" role="alert">
+Please login to view this page.
+</div>
+{% endif %}
 
-    
 {% endblock %}

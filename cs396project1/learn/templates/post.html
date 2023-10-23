@@ -19,7 +19,6 @@
                         <hr>
                         {{ post.body | safe }}
 
-                        <!-- Display attached files -->
                         {% for attached_file in post.attachedfile_set.all %}
                             File : <a href="{{ attached_file.file.url }}" download>Download file</a>
                             <a href="{{ attached_file.file.url }}" target="_blank"> View file</a> 

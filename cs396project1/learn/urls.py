@@ -1,6 +1,6 @@
 from django.urls import path
 # from . import views
-from .views import (HomeView, 
+from .views import (PostFeedView, 
                     LessonView,
                     CreatePostView, 
                     CreateLessonView, 
@@ -26,7 +26,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('', HomeView.as_view(), name="home"),
+    path('', subjects_view, name="home"),
+    path('post_feed', PostFeedView.as_view(), name="post_feed"),
     path('post/<int:pk>', PostView.as_view(), name='post'),
     path('lesson/<int:pk>', LessonView.as_view(), name='lesson'),
     path('create_post/', CreatePostView.as_view(), name='create_post'),

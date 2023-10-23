@@ -17,18 +17,20 @@ from django.urls import reverse
 from django.db.models import Max
 from django.http import HttpResponseRedirect, HttpResponseNotAllowed
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseNotAllowed, HttpResponseRedirect
-
+from django.db.models import Q, Max, Min, Count
+from django.shortcuts import render, redirect
+from .forms import PostForm, LessonForm, AttachedFileForm
 User = settings.AUTH_USER_MODEL
 
 # Define a view for the home page
-class HomeView(ListView):
+class PostFeedView(ListView):
     model = Post
-    template_name = 'home.html'
+    template_name = 'post_feed.html'
     ordering = ['-id']
 
     # Override the get_context_data method to add custom context data
     def get_context_data(self, **kwargs):
-        context = super(HomeView, self).get_context_data(**kwargs)
+        context = super(PostFeedView, self).get_context_data(**kwargs)
         context['post_list'] = Post.objects.order_by("date")
 
         if self.request.user.is_authenticated: 
@@ -73,16 +75,13 @@ class PostView(FormMixin, HitCountDetailView):
         else:
             return self.form_invalid(form)
 
-from django.shortcuts import render, redirect
-from .forms import PostForm, LessonForm, AttachedFileForm
-
-class CreatePostView(View):  # Notice we're now using just "View"
+class CreatePostView(View):  
     model = Post
     template_name = "create_post.html"
 
     def get(self, request):
         form = PostForm()
-        file_forms = [AttachedFileForm(prefix=str(x), instance=AttachedFile()) for x in range(3)]  # Let's say initially 3 forms
+        file_forms = [AttachedFileForm(prefix=str(x), instance=AttachedFile()) for x in range(3)]  
         return render(request, self.template_name, {'form': form, 'file_forms': file_forms})
 
     def post(self, request):
@@ -97,7 +96,7 @@ class CreatePostView(View):  # Notice we're now using just "View"
                     attached_file.post = post
                     attached_file.save()
 
-            return redirect('home')  # replace with the name of your desired redirect view
+            return redirect('post_feed')  
         return render(request, self.template_name, {'form': form, 'file_forms': file_forms})
 
 # Similarly for the lesson
@@ -143,7 +142,8 @@ class QuizListView(ListView):
     def get_queryset(self):
         queryset = self.request.user.quizzes \
             .annotate(questions_count=Count('questions', distinct=True)) \
-            .annotate(taken_count=Count('taken_quizzes', distinct=True))
+            .annotate(taken_count=Count('taken_quizzes')) \
+            .annotate(student_count=Count('taken_quizzes__student', distinct=True))
         return queryset
 
 # Define a view for creating a new quiz
@@ -198,7 +198,6 @@ class QuizResultsView(DetailView):
     context_object_name = 'quiz'
     template_name = 'quiz_results.html'
 
-    # Override the get_context_data method to add custom context data
     def get_context_data(self, **kwargs):
         quiz = self.get_object()
         taken_quizzes = quiz.taken_quizzes.select_related('student__user').order_by('-date')
@@ -207,10 +206,44 @@ class QuizResultsView(DetailView):
         # Round to two decimal points
         if quiz_score['average_score'] is not None:
             quiz_score['average_score'] = round(quiz_score['average_score'], 2)
+        highest_score = quiz.taken_quizzes.aggregate(Max('score'))['score__max']
+        lowest_score = quiz.taken_quizzes.aggregate(Min('score'))['score__min']
+
+        # Calculate the most missed question
+        # Assuming you have a foreign key from StudentAnswer to Question named 'question'
+        most_missed_question = quiz.questions.annotate(
+            incorrect_count=Count('studentanswer', filter=~Q(studentanswer__answer__is_correct=True))
+        ).order_by('-incorrect_count').first()
+
+        # Initialize variables to calculate the average.
+        total_score = 0
+        count = 0
+
+        # Get distinct student-quiz pairs for the current quiz.
+        distinct_student_quizzes = TakenQuiz.objects.filter(quiz=quiz).values('student', 'quiz').distinct()
+
+        for item in distinct_student_quizzes:
+            student_id = item['student']
+            quiz_id = item['quiz']
+
+            # Get the latest attempt for this student-quiz pair.
+            latest_attempt = TakenQuiz.objects.filter(student_id=student_id, quiz_id=quiz_id).aggregate(Max('attempt_number'))
+            latest_score = TakenQuiz.objects.get(student_id=student_id, quiz_id=quiz_id, attempt_number=latest_attempt['attempt_number__max']).score
+
+            total_score += latest_score
+            count += 1
+
+        average_quiz_score = total_score / count if count else 0
+
+
         extra_context = {
             'taken_quizzes': taken_quizzes,
             'total_taken_quizzes': total_taken_quizzes,
-            'quiz_score': quiz_score
+            'quiz_score': quiz_score,
+            'highest_score': highest_score,
+            'lowest_score': lowest_score,
+            'most_missed_question': most_missed_question.text if most_missed_question else None,
+            'final_attempt_avg':average_quiz_score,
         }
         kwargs.update(extra_context)
         return super().get_context_data(**kwargs)
@@ -295,9 +328,6 @@ class QuestionDeleteView(DeleteView):
         question = self.get_object()
         return reverse('edit_quiz', kwargs={'pk': question.quiz_id})
 
-# Define a view for displaying a list of quizzes for a student
-from django.db.models import Count
-
 class StudentQuizListView(ListView):
     model = Quiz
     ordering = ('name',)
@@ -330,7 +360,6 @@ class StudentQuizListView(ListView):
         context['quiz_details'] = quiz_details
         return context
 
-
 # Define a view for displaying a list of taken quizzes for a student
 class TakenQuizListView(ListView):
     model = TakenQuiz
@@ -343,7 +372,6 @@ class TakenQuizListView(ListView):
             .select_related('quiz') \
             .order_by('quiz__name')
         return queryset
-
 
 
 def take_quiz(request, pk):
@@ -359,9 +387,6 @@ def take_quiz(request, pk):
 
     questions = student.get_questions(quiz)
     return render(request, 'take_quiz.html', {'quiz': quiz, 'questions': questions})
-
-
-
 
 def submit_quiz(request, quiz_id):
     if request.method == 'POST':    
@@ -432,52 +457,76 @@ def subjects_view(request):
     return render(request, 'subjects.html', {'subjects': subjects})
 
 def subject_detail_view(request, subject_id):
-    # Get the subject
     subject = get_object_or_404(Subject, id=subject_id)
+    taken_quizzes = {}
+    average_quiz_score = 0
 
     # Ensure the user is authenticated and is a student
-    if not request.user.is_authenticated or not hasattr(request.user, 'student'):
-        return redirect('login')  # or some other appropriate response
+    if request.user.is_authenticated and hasattr(request.user, 'student'):
 
-    # Get all distinct student-quiz pairs for the current student
-    distinct_student_quizzes = TakenQuiz.objects.filter(student=request.user.student, quiz__subject=subject).values('student', 'quiz').distinct()
+        # Get all distinct student-quiz pairs for the current student
+        distinct_student_quizzes = TakenQuiz.objects.filter(student=request.user.student, quiz__subject=subject).values('student', 'quiz').distinct()
+        total_score = 0
+        count = 0
 
-    total_score = 0
-    count = 0
+        for item in distinct_student_quizzes:
+            student_id = item['student']
+            quiz_id = item['quiz']
 
-    for item in distinct_student_quizzes:
-        student_id = item['student']
-        quiz_id = item['quiz']
+            # Get the latest attempt for this student-quiz pair
+            latest_attempt = TakenQuiz.objects.filter(student_id=student_id, quiz_id=quiz_id).aggregate(Max('attempt_number'))
+            latest_score = TakenQuiz.objects.get(student_id=student_id, quiz_id=quiz_id, attempt_number=latest_attempt['attempt_number__max']).score
 
-        # Get the latest attempt for this student-quiz pair
-        latest_attempt = TakenQuiz.objects.filter(student_id=student_id, quiz_id=quiz_id).aggregate(Max('attempt_number'))
-        latest_score = TakenQuiz.objects.get(student_id=student_id, quiz_id=quiz_id, attempt_number=latest_attempt['attempt_number__max']).score
+            total_score += latest_score
+            count += 1
+        quizzes = Quiz.objects.filter(subject=subject)
+        available_quizzes = []
+        for quiz in quizzes:
+            num_attempts = TakenQuiz.objects.filter(student=request.user.student, quiz=quiz).count()
+            if num_attempts < 3:
+                quiz.num_attempts = num_attempts
+                quiz.questions_count = quiz.questions.count()
+                available_quizzes.append(quiz)
+        quizzes = available_quizzes
+        # Filter taken quizzes by the subject and the current student
+        taken_quizzes = TakenQuiz.objects.filter(student=request.user.student, quiz__subject=subject)
+        # Calculate the average score
+        average_quiz_score = total_score / count if count else 0
+    else:
+        quizzes = Quiz.objects.filter(owner=request.user, subject=subject) \
+            .annotate(questions_count=Count('questions', distinct=True)) \
+            .annotate(taken_count=Count('taken_quizzes', distinct=True))
+    
 
-        total_score += latest_score
-        count += 1
+        # Initialize variables to calculate the average.
+        total_score = 0
+        count = 0
 
-    # Calculate the average score
-    average_quiz_score = total_score / count if count else 0
+        for quiz in quizzes:
+            # Get distinct student-quiz pairs for the current quiz.
+            distinct_student_quizzes = TakenQuiz.objects.filter(quiz=quiz).values('student', 'quiz').distinct()
 
+            for item in distinct_student_quizzes:
+                student_id = item['student']
+                quiz_id = item['quiz']
+
+                # Get the latest attempt for this student-quiz pair.
+                latest_attempt = TakenQuiz.objects.filter(student_id=student_id, quiz_id=quiz_id).aggregate(Max('attempt_number'))
+                latest_score = TakenQuiz.objects.get(student_id=student_id, quiz_id=quiz_id, attempt_number=latest_attempt['attempt_number__max']).score
+
+                total_score += latest_score
+                count += 1
+
+        average_quiz_score = total_score / count if count else 0
+
+        
     posts = Post.objects.filter(subject=subject)
     lessons = Lesson.objects.filter(subject=subject)
-
-    quizzes = Quiz.objects.filter(subject=subject)
-    available_quizzes = []
-    for quiz in quizzes:
-        num_attempts = TakenQuiz.objects.filter(student=request.user.student, quiz=quiz).count()
-        if num_attempts < 3:
-            quiz.num_attempts = num_attempts
-            quiz.questions_count = quiz.questions.count()
-            available_quizzes.append(quiz)
-
-    # Filter taken quizzes by the subject and the current student
-    taken_quizzes = TakenQuiz.objects.filter(student=request.user.student, quiz__subject=subject)
 
     return render(request, 'subject_detail.html', {
         'subject': subject,
         'average_quiz_score': average_quiz_score,
-        'quizzes': available_quizzes,
+        'quizzes': quizzes,
         'taken_quizzes': taken_quizzes,
         'posts': posts,
         'lessons': lessons

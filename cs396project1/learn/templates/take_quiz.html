@@ -2,25 +2,6 @@
 
 {% block content %}
   <h2>{{ quiz.name }}</h2>
-  <!-- <form method="post">
-    {% csrf_token %}
-    
-    {% for question, form in questions_and_forms %}
-      <fieldset>
-        <legend>{{ question.text }}</legend>
-        
-        {% for radio in form.answer %}
-          <label>
-            {{ radio.tag }}
-            {{ radio.choice_label }}
-          </label><br>
-        {% endfor %}
-        
-      </fieldset>
-    {% endfor %}
-    
-    <button type="submit">Submit Quiz</button>
-  </form> -->
   <form method="post" method="post" action="{% url 'submit_quiz' quiz.id %}">
   {% csrf_token %}
     
