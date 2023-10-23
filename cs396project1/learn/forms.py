@@ -1,21 +1,18 @@
 from django import forms
 from django.forms.utils import ValidationError
-from .models import Post, Comment, Lesson, Answer, Question, Student, StudentAnswer
+from .models import Post, Comment, Lesson, Answer, Question, Student, StudentAnswer, AttachedFile
 
 # Define a form for creating or updating a lesson
 class LessonForm(forms.ModelForm):
     class Meta:
         model = Lesson
-        fields = ('subject', 'title', 'author', 'body', 'file1', 'file2', 'file3', 'image', 'video', 'youtubevideo')
+        fields = ('subject', 'title', 'author', 'body', 'image', 'video', 'youtubevideo')
 
         # Define form field widgets for rendering HTML elements
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'author': forms.TextInput(attrs={'class': 'form-control', 'value': '', 'id': 'user', 'type': 'hidden'}),
             'body': forms.Textarea(attrs={'class': 'form-control'}),
-            'file1': forms.FileInput(attrs={'class': 'form-control'}),
-            'file2': forms.FileInput(attrs={'class': 'form-control'}),
-            'file3': forms.FileInput(attrs={'class': 'form-control'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
             'video': forms.FileInput(attrs={'class': 'form-control'}),
             'youtubevideo': forms.TextInput(attrs={'class': 'form-control'}),
@@ -25,16 +22,13 @@ class LessonForm(forms.ModelForm):
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        fields = ('subject', 'title', 'author', 'body', 'file1', 'file2', 'file3')
+        fields = ('subject', 'title', 'author', 'body')
 
         # Define form field widgets for rendering HTML elements
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'author': forms.TextInput(attrs={'class': 'form-control', 'value': '', 'id': 'user', 'type': 'hidden'}),
             'body': forms.Textarea(attrs={'class': 'form-control'}),
-            'file1': forms.FileInput(attrs={'required': False}),
-            'file2': forms.FileInput(attrs={'required': False}),
-            'file3': forms.FileInput(attrs={'required': False}),
         }
 
 # Define a form for creating or updating a comment
@@ -113,3 +107,13 @@ class QuizAnswerForm(forms.ModelForm):
         if not answer:
             raise forms.ValidationError("You must select an answer.")
         return answer
+    
+class AttachedFileForm(forms.ModelForm):
+    class Meta:
+        model = AttachedFile
+        fields = ('file',)
+
+        # Define form field widgets for rendering HTML elements
+        widgets = {
+            'file': forms.FileInput(attrs={'class': 'form-control'}),
+        }

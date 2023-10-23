@@ -1,7 +1,7 @@
 from django.shortcuts import render,redirect 
 from django.contrib import messages
-from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
-from .models import Post, Lesson, Quiz, Question, Answer, TakenQuiz, StudentAnswer, Subject
+from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView, View
+from .models import Post, Lesson, Quiz, Question, Answer, TakenQuiz, StudentAnswer, Subject, AttachedFile
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from django.forms import inlineformset_factory
@@ -15,6 +15,9 @@ from django.views.generic.edit import FormMixin
 from django.urls import reverse_lazy
 from django.urls import reverse
 from django.db.models import Max
+from django.http import HttpResponseRedirect, HttpResponseNotAllowed
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseNotAllowed, HttpResponseRedirect
+
 User = settings.AUTH_USER_MODEL
 
 # Define a view for the home page
@@ -70,17 +73,58 @@ class PostView(FormMixin, HitCountDetailView):
         else:
             return self.form_invalid(form)
 
-# Define a view for creating a new post
-class CreatePostView(CreateView):
+from django.shortcuts import render, redirect
+from .forms import PostForm, LessonForm, AttachedFileForm
+
+class CreatePostView(View):  # Notice we're now using just "View"
     model = Post
-    form_class = PostForm
     template_name = "create_post.html"
 
-# Define a view for creating a new lesson
-class CreateLessonView(CreateView):
+    def get(self, request):
+        form = PostForm()
+        file_forms = [AttachedFileForm(prefix=str(x), instance=AttachedFile()) for x in range(3)]  # Let's say initially 3 forms
+        return render(request, self.template_name, {'form': form, 'file_forms': file_forms})
+
+    def post(self, request):
+        form = PostForm(request.POST)
+        file_forms = [AttachedFileForm(request.POST, request.FILES, prefix=str(x)) for x in range(3)] 
+
+        if form.is_valid() and all([file_form.is_valid() for file_form in file_forms]):
+            post = form.save()
+            for file_form in file_forms:
+                if file_form.cleaned_data.get('file'):
+                    attached_file = file_form.save(commit=False)
+                    attached_file.post = post
+                    attached_file.save()
+
+            return redirect('home')  # replace with the name of your desired redirect view
+        return render(request, self.template_name, {'form': form, 'file_forms': file_forms})
+
+# Similarly for the lesson
+class CreateLessonView(View):
     model = Lesson
-    form_class = LessonForm
     template_name = "create_lesson.html"
+
+    def get(self, request):
+        form = LessonForm()
+        file_forms = [AttachedFileForm(prefix=str(x), instance=AttachedFile()) for x in range(3)]
+        return render(request, self.template_name, {'form': form, 'file_forms': file_forms})
+
+    def post(self, request):
+        form = LessonForm(request.POST, request.FILES)
+        file_forms = [AttachedFileForm(request.POST, request.FILES, prefix=str(x)) for x in range(3)]
+
+        if form.is_valid() and all([file_form.is_valid() for file_form in file_forms]):
+            lesson = form.save()
+            for file_form in file_forms:
+                if file_form.cleaned_data.get('file'):
+                    attached_file = file_form.save(commit=False)
+                    attached_file.lesson = lesson
+                    attached_file.save()
+
+            return redirect('lesson_feed')  # replace with the name of your desired redirect view
+        return render(request, self.template_name, {'form': form, 'file_forms': file_forms})
+
 
 # Define a view for displaying a lesson
 class LessonView(HitCountDetailView):
@@ -318,9 +362,6 @@ def take_quiz(request, pk):
 
 
 
-from django.http import HttpResponseRedirect, HttpResponseNotAllowed
-
-from django.http import HttpResponse, HttpResponseForbidden, HttpResponseNotAllowed, HttpResponseRedirect
 
 def submit_quiz(request, quiz_id):
     if request.method == 'POST':    
@@ -394,8 +435,12 @@ def subject_detail_view(request, subject_id):
     # Get the subject
     subject = get_object_or_404(Subject, id=subject_id)
 
-    # Get all distinct student-quiz pairs
-    distinct_student_quizzes = TakenQuiz.objects.filter(quiz__subject=subject).values('student', 'quiz').distinct()
+    # Ensure the user is authenticated and is a student
+    if not request.user.is_authenticated or not hasattr(request.user, 'student'):
+        return redirect('login')  # or some other appropriate response
+
+    # Get all distinct student-quiz pairs for the current student
+    distinct_student_quizzes = TakenQuiz.objects.filter(student=request.user.student, quiz__subject=subject).values('student', 'quiz').distinct()
 
     total_score = 0
     count = 0
@@ -414,7 +459,26 @@ def subject_detail_view(request, subject_id):
     # Calculate the average score
     average_quiz_score = total_score / count if count else 0
 
+    posts = Post.objects.filter(subject=subject)
+    lessons = Lesson.objects.filter(subject=subject)
+
+    quizzes = Quiz.objects.filter(subject=subject)
+    available_quizzes = []
+    for quiz in quizzes:
+        num_attempts = TakenQuiz.objects.filter(student=request.user.student, quiz=quiz).count()
+        if num_attempts < 3:
+            quiz.num_attempts = num_attempts
+            quiz.questions_count = quiz.questions.count()
+            available_quizzes.append(quiz)
+
+    # Filter taken quizzes by the subject and the current student
+    taken_quizzes = TakenQuiz.objects.filter(student=request.user.student, quiz__subject=subject)
+
     return render(request, 'subject_detail.html', {
         'subject': subject,
-        'average_quiz_score': average_quiz_score 
+        'average_quiz_score': average_quiz_score,
+        'quizzes': available_quizzes,
+        'taken_quizzes': taken_quizzes,
+        'posts': posts,
+        'lessons': lessons
     })

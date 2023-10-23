@@ -24,12 +24,7 @@ class Post(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     body = RichTextField(blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
-    file1 = models.FileField(upload_to='documents/', blank=True, validators=[
-        FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'txt'])])
-    file2 = models.FileField(upload_to='documents/', blank=True, validators=[
-        FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'txt'])])
-    file3 = models.FileField(upload_to='documents/', blank=True, validators=[
-        FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'txt'])])
+  
 
     # Method to return a string representation of the object
     def __str__(self):
@@ -46,16 +41,10 @@ class Lesson(models.Model):
     title = models.CharField(max_length=255)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     body = RichTextField(blank=True, null=True)
-    date = models.DateField(auto_now_add=True)
+    date = models.DateTimeField(auto_now_add=True)
     youtubevideo = models.CharField(max_length=1000, blank=True)
     video = models.FileField(upload_to='documents/', blank=True, validators=[
         FileExtensionValidator(allowed_extensions=['mp4'])])
-    file1 = models.FileField(upload_to='documents/', blank=True, validators=[
-        FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'txt'])])
-    file2 = models.FileField(upload_to='documents/', blank=True, validators=[
-        FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'txt'])])
-    file3 = models.FileField(upload_to='documents/', blank=True, validators=[
-        FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'txt'])])
     image = models.ImageField(upload_to='images/', blank=True, null=True, validators=[
         FileExtensionValidator(allowed_extensions=['jpg', 'gif', 'jpeg'])])
 
@@ -103,18 +92,12 @@ class Student(models.Model):
 
 # Define the Question model
 class Question(models.Model):
-    # Fields for the Question model
-    subject = models.ForeignKey(Subject, null=True, blank=True, on_delete=models.CASCADE)
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='questions')
     text = models.CharField('Question', max_length=255)
 
-    # Method to return a string representation of the object
     def __str__(self):
         return self.text
-    
-    def save(self, *args, **kwargs):
-        self.subject = self.quiz.subject
-        super(Question, self).save(*args, **kwargs)
+
 
 # Define the Answer model
 class Answer(models.Model):
@@ -136,12 +119,6 @@ class TakenQuiz(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     attempt_number = models.IntegerField()  
 
-# Define the StudentAnswer model
-# class StudentAnswer(models.Model):
-#     # Fields for the StudentAnswer model
-#     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='quiz_answers')
-#     answer = models.ForeignKey(Answer, on_delete=models.CASCADE, related_name='+')
-
 class StudentAnswer(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     taken_quiz = models.ForeignKey(TakenQuiz, on_delete=models.CASCADE)
@@ -156,36 +133,28 @@ class SubjectStudentScore(models.Model):
 # SubjectQuestionAnswer model
 class SubjectQuestionAnswer(models.Model):
     user = models.ForeignKey(User, related_name='question_answers', on_delete=models.CASCADE)
-    subject = models.ForeignKey(Subject, related_name='question_answers', on_delete=models.CASCADE)
     question = models.ForeignKey(Question, related_name='question_answers', on_delete=models.CASCADE)
     answer_submitted = models.TextField()
 
 # SubjectQuestionAttempt model
 class SubjectQuestionAttempt(models.Model):
     user = models.ForeignKey(User, related_name='question_attempts', on_delete=models.CASCADE)
-    subject = models.ForeignKey(Subject, related_name='question_attempts', on_delete=models.CASCADE)
     question = models.ForeignKey(Question, related_name='question_attempts', on_delete=models.CASCADE)
     attempt_number = models.IntegerField()
     answer_submitted = models.TextField()
     is_correct = models.BooleanField(default=False)
 
 
+#removes the need for file1, file2, file3
+class AttachedFile(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, null=True, blank=True)
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, null=True, blank=True)
+    file = models.FileField(upload_to='documents/', blank=True, validators=[
+        FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'txt', 'mp4'])])
 
-# class SubjectStudentScore(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-#     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-#     total_score = models.IntegerField()
+    def save(self, *args, **kwargs):
+        # Ensure only one of Post or Lesson is set
+        if self.post and self.lesson:
+            raise ValueError("An attached file cannot belong to both a post and a lesson.")
+        super(AttachedFile, self).save(*args, **kwargs)
 
-# class SubjectQuestionAnswer(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-#     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-#     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-#     answer_submitted = models.TextField()
-
-# class SubjectQuestionAttempt(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-#     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-#     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-#     attempt_number = models.IntegerField()
-#     answer_submitted = models.TextField()
-#     is_correct = models.BooleanField()

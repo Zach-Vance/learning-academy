@@ -6,20 +6,53 @@
     <!-- Aggregate Quiz Score -->
     <h3>Average Quiz Score: {{ average_quiz_score|floatformat:2 }}%</h3>
 
-    <!-- Quizzes Table -->
-    <h3>Quizzes</h3>
+        <!-- Quizzes Table -->
+    <h3>Available Quizzes</h3>
     <table class="table">
         <thead>
             <tr>
-                <th>Name</th>
-                <th>Description</th>
+                <th>Quiz</th>
+                <th>Length</th>
+                <th>Number of Attempts</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
-            {% for quiz in subject.quizzes.all %}
+            {% for quiz in quizzes %}
                 <tr>
-                    <td><a href="{% url 'quiz_detail' quiz.id %}">{{ quiz.name }}</a></td>
-                    <td>{{ quiz.description|truncatechars:100 }}</td>
+                    <td>{{ quiz.name }}</td>
+                    <td>{{ quiz.questions_count }} questions</td>
+                    <td>{{ quiz.num_attempts }}</td>
+                    <td><a href="{% url 'take_quiz' quiz.id %}" class="btn btn-primary">Start quiz</a></td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center font-italic">There are no quizzes for this subject.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Taken Quizzes Table -->
+    <h3>Taken Quizzes</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Quiz</th>
+                <th>Attempt</th>
+                <th>Score</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for taken_quiz in taken_quizzes %}
+                <tr>
+                    <td><a href="{% url 'view_attempt' taken_quiz.id %}">{{ taken_quiz.quiz.name }}</a></td>
+                    <td>{{ taken_quiz.attempt_number }}</td>
+                    <td>{{ taken_quiz.score }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center font-italic">You haven't taken any quizzes for this subject yet.</td>
                 </tr>
             {% endfor %}
         </tbody>
@@ -31,18 +64,33 @@
         <thead>
             <tr>
                 <th>Title</th>
-                <th>Content</th>
+                <th>Posted By</th>
+                <th>Date</th>
             </tr>
         </thead>
         <tbody>
-            {% for post in subject.posts.all %}
+            {% for post in posts %}
                 <tr>
-                    <td><a href="{% url 'post_detail' post.id %}">{{ post.title }}</a></td>
-                    <td>{{ post.content|truncatechars:100 }}</td>
+                    <td><a href="{% url 'post' post.pk %}">{{ post.title }}</a></td>
+                    <td>{{ post.author }} 
+                        {% if post.author.is_student %}
+                          (Student)
+                        {% elif post.author.is_teacher %}
+                          <i>(Teacher)</i>
+                        {% else %}
+                          <strong>(Admin)</strong>
+                        {% endif %}
+                      </td>
+                    <td>{{ post.date }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center font-italic">There are no posts for this subject yet.</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
+
 
     <!-- Lessons Table -->
     <h3>Lessons</h3>
@@ -50,19 +98,31 @@
         <thead>
             <tr>
                 <th>Title</th>
-                <th>Description</th>
+                <th>Author</th>
+                <th>Date</th>
             </tr>
         </thead>
         <tbody>
-            {% for lesson in subject.lessons.all %}
+            {% for lesson in lessons %}
                 <tr>
-                    <td><a href="{% url 'lesson_detail' lesson.id %}">{{ lesson.title }}</a></td>
-                    <td>{{ lesson.description|truncatechars:100 }}</td>
+                    <td><a href="{% url 'lesson' lesson.pk %}">{{ lesson.title }}</a></td>
+                    <td>{{ lesson.author }}
+                    {% if lesson.author.is_teacher %}
+                      <i>(Teacher)</i>
+                    {% else %}
+                      <strong>(Admin)</strong>
+                    {% endif %}
+
+                    </td>
+                    <td>{{ lesson.date }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center font-italic">There aren't any lessons</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
-
     
 
     
