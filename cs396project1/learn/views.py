@@ -1,7 +1,7 @@
 from django.shortcuts import render,redirect 
 from django.contrib import messages
-from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView, View
-from .models import Post, Lesson, Quiz, Question, Answer, TakenQuiz, StudentAnswer, Subject, AttachedFile
+from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView, View, TemplateView
+from .models import Comment, Post, Lesson, Quiz, Question, Answer, Student, TakenQuiz, StudentAnswer, Subject, AttachedFile
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from django.forms import inlineformset_factory
@@ -20,7 +20,12 @@ from django.http import HttpResponse, HttpResponseForbidden, HttpResponseNotAllo
 from django.db.models import Q, Max, Min, Count
 from django.shortcuts import render, redirect
 from .forms import PostForm, LessonForm, AttachedFileForm
-User = settings.AUTH_USER_MODEL
+from django.contrib.auth.decorators import login_required
+from django.db.models import Max, Subquery, OuterRef
+from django.contrib.auth import get_user_model
+
+# User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 # Define a view for the home page
 class PostFeedView(ListView):
@@ -328,50 +333,75 @@ class QuestionDeleteView(DeleteView):
         question = self.get_object()
         return reverse('edit_quiz', kwargs={'pk': question.quiz_id})
 
-class StudentQuizListView(ListView):
-    model = Quiz
-    ordering = ('name',)
-    context_object_name = 'quizzes'
-    template_name = 'student_quiz_list.html'
-
-    def get_queryset(self):
+class StudentQuizListView(TemplateView):
+    template_name = "student_quiz_list.html"
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         student = self.request.user.student
+
+        # Get available quizzes
         all_quizzes = Quiz.objects.all()
         available_quizzes = []
         for quiz in all_quizzes:
             num_attempts = TakenQuiz.objects.filter(student=student, quiz=quiz).count()
             if num_attempts < 3:
-                quiz.num_attempts = num_attempts  # Attach the number of attempts to the quiz object
-                quiz.questions_count = quiz.questions.count()  # Attach the number of questions to the quiz object
+                quiz.num_attempts = num_attempts
+                quiz.questions_count = quiz.questions.count()
                 available_quizzes.append(quiz)
-        return available_quizzes
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        student = self.request.user.student
+        # Get taken quizzes
+        taken_quizzes = student.taken_quizzes.select_related('quiz').order_by('quiz__name')
 
-        # Add the number of attempts and questions for each quiz to the context
-        quiz_details = {}
-        for quiz in context['quizzes']:
-            num_attempts = TakenQuiz.objects.filter(student=student, quiz=quiz).count()
-            num_questions = Question.objects.filter(quiz=quiz).count()
-            quiz_details[quiz.id] = {'attempts': num_attempts, 'questions': num_questions}
-
-        context['quiz_details'] = quiz_details
+        context['quizzes'] = available_quizzes
+        context['taken_quizzes'] = taken_quizzes
         return context
 
-# Define a view for displaying a list of taken quizzes for a student
-class TakenQuizListView(ListView):
-    model = TakenQuiz
-    context_object_name = 'taken_quizzes'
-    template_name = 'student_quiz_results.html'
 
-    # Override the get_queryset method to customize the queryset
-    def get_queryset(self):
-        queryset = self.request.user.student.taken_quizzes \
-            .select_related('quiz') \
-            .order_by('quiz__name')
-        return queryset
+
+
+    # model = Quiz
+    # ordering = ('name',)
+    # context_object_name = 'quizzes'
+    # template_name = 'student_quiz_list.html'
+
+    # def get_queryset(self):
+    #     student = self.request.user.student
+    #     all_quizzes = Quiz.objects.all()
+    #     available_quizzes = []
+    #     for quiz in all_quizzes:
+    #         num_attempts = TakenQuiz.objects.filter(student=student, quiz=quiz).count()
+    #         if num_attempts < 3:
+    #             quiz.num_attempts = num_attempts  # Attach the number of attempts to the quiz object
+    #             quiz.questions_count = quiz.questions.count()  # Attach the number of questions to the quiz object
+    #             available_quizzes.append(quiz)
+    #     return available_quizzes
+
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(**kwargs)
+    #     student = self.request.user.student
+
+    #     # Add the number of attempts and questions for each quiz to the context
+    #     quiz_details = {}
+    #     for quiz in context['quizzes']:
+    #         num_attempts = TakenQuiz.objects.filter(student=student, quiz=quiz).count()
+    #         num_questions = Question.objects.filter(quiz=quiz).count()
+    #         quiz_details[quiz.id] = {'attempts': num_attempts, 'questions': num_questions}
+
+    #     context['quiz_details'] = quiz_details
+    #     return context
+
+# # Define a view for displaying a list of taken quizzes for a student
+# class TakenQuizListView(ListView):
+#     model = TakenQuiz
+#     context_object_name = 'taken_quizzes'
+#     template_name = 'student_quiz_results.html'
+
+#     # Override the get_queryset method to customize the queryset
+#     def get_queryset(self):
+#         queryset = self.request.user.student.taken_quizzes \
+#             .select_related('quiz') \
+#             .order_by('quiz__name')
+#         return queryset
 
 
 def take_quiz(request, pk):
@@ -432,7 +462,7 @@ def submit_quiz(request, quiz_id):
                     answer=answer
                 )
 
-        return HttpResponseRedirect('../../student_quiz_results')
+        return HttpResponseRedirect('../../student_quiz_list')
 
     else:
         return HttpResponseNotAllowed('This view can only handle POST requests.')
@@ -531,3 +561,140 @@ def subject_detail_view(request, subject_id):
         'posts': posts,
         'lessons': lessons
     })
+
+@login_required
+def student_view(request, student_id):
+    # Get the student by their ID
+    student = Student.objects.get(user_id=student_id)
+    user = student.user
+
+    is_owner_or_teacher = request.user.id == student_id
+
+    latest_attempts = TakenQuiz.objects.filter(
+        student=student,
+        attempt_number=Subquery(
+            TakenQuiz.objects.filter(
+                student=OuterRef('student'),
+                quiz=OuterRef('quiz')
+            ).order_by('-attempt_number').values('attempt_number')[:1]
+        )
+    )
+
+    # Calculate the average score for each subject using the latest attempts
+    subjects_average = {}
+    for tq in latest_attempts:
+        subject_name = tq.quiz.subject.name
+        subjects_average.setdefault(subject_name, []).append(tq.score)
+    for subject in subjects_average:
+        subjects_average[subject] = sum(subjects_average[subject]) / len(subjects_average[subject])
+
+
+    # Get the posts and comments made by the student
+    posts = Post.objects.filter(author=user)
+    comments = Comment.objects.filter(name=user)
+
+    context = {
+        'student_user': user,
+        'student': student,
+        'taken_quizzes': latest_attempts,
+        'subjects_average': subjects_average,
+        'posts': posts,
+        'comments': comments,
+        'is_owner_or_teacher': is_owner_or_teacher,
+    }
+
+    return render(request, 'student_view.html', context)
+
+
+# def search(request):
+#     if request.method == "POST":
+#         searched = request.POST.get('searched', '')  # Using get method for safety
+#         users = User.objects.filter(
+#             Q(username__icontains=searched) |
+#             Q(first_name__icontains=searched) |
+#             Q(last_name__icontains=searched)
+#         )
+        
+#         # Assuming 'Question' model has a 'text' field and is related to 'Quiz' through a 'ForeignKey'
+#         quizzes = Quiz.objects.filter(
+#             Q(name__icontains=searched) |
+#             Q(questions__text__icontains=searched) |
+#             Q(subject__name__icontains=searched)  # This line is for searching by subject name
+#         ).distinct() 
+
+#         subjects = Subject.objects.filter(name__icontains=searched)
+#         posts = Post.objects.filter(
+#             Q(title__icontains=searched) |
+#             Q(author__username__icontains=searched) |
+#             Q(subject__name__icontains=searched) |
+#             Q(body__icontains=searched)
+#         )
+#         lessons = Lesson.objects.filter(
+#             Q(title__icontains=searched) |
+#             Q(author__username__icontains=searched) |
+#             Q(subject__name__icontains=searched) |
+#             Q(body__icontains=searched)
+#         )
+        
+#         # Combine all queries into a single context
+#         context = {
+#             'searched': searched,
+#             'students': users,
+#             'quizzes': quizzes,
+#             'subjects': subjects,
+#             'posts': posts,
+#             'lessons': lessons
+#         }
+        
+#         return render(request, 'search.html', context)
+#     else:
+#         return render(request, 'search.html', {})
+def search(request):
+    if request.method == "POST":
+        searched = request.POST.get('searched', '')
+        students = User.objects.filter(
+            Q(username__icontains=searched) |
+            Q(first_name__icontains=searched) |
+            Q(last_name__icontains=searched),
+            student__isnull=False  # This ensures that the user has a related Student object
+        )
+        
+        quizzes = Quiz.objects.filter(
+            Q(name__icontains=searched) |
+            Q(questions__text__icontains=searched) |
+            Q(subject__name__icontains=searched)
+        ).distinct()
+
+        # Add logic to get the highest attempt number for each quiz for the current student
+        if request.user.is_authenticated and hasattr(request.user, 'student'):
+            student = request.user.student
+            for quiz in quizzes:
+                taken_quiz = TakenQuiz.objects.filter(quiz=quiz, student=student).order_by('-attempt_number').first()
+                quiz.highest_attempt_id = taken_quiz.id if taken_quiz else None
+
+        subjects = Subject.objects.filter(name__icontains=searched)
+        posts = Post.objects.filter(
+            Q(title__icontains=searched) |
+            Q(author__username__icontains=searched) |
+            Q(subject__name__icontains=searched) |
+            Q(body__icontains=searched)
+        )
+        lessons = Lesson.objects.filter(
+            Q(title__icontains=searched) |
+            Q(author__username__icontains=searched) |
+            Q(subject__name__icontains=searched) |
+            Q(body__icontains=searched)
+        )
+        
+        context = {
+            'searched': searched,
+            'students': students,
+            'quizzes': quizzes,
+            'subjects': subjects,
+            'posts': posts,
+            'lessons': lessons
+        }
+        
+        return render(request, 'search.html', context)
+    else:
+        return render(request, 'search.html', {})

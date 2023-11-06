@@ -1,27 +1,6 @@
 from django.urls import path
 # from . import views
-from .views import (PostFeedView, 
-                    LessonView,
-                    CreatePostView, 
-                    CreateLessonView, 
-                    LessonFeedView,
-                    PostView,
-                    QuizListView,
-                    QuizCreateView,
-                    QuizUpdateView,
-                    QuizDeleteView,
-                    QuizResultsView,
-                    question_add,
-                    question_change,
-                    QuestionDeleteView,
-                    StudentQuizListView,
-                    TakenQuizListView,
-                    take_quiz,
-                    submit_quiz,
-                    view_attempt,
-                    subjects_view,
-                    subject_detail_view,
-                    )
+from .views import *
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -43,10 +22,12 @@ urlpatterns = [
     path('quiz/<int:quiz_pk>/question/<int:question_pk>/', question_change, name='question_change'),
     path('quiz/<int:quiz_pk>/question/<int:question_pk>/delete/', QuestionDeleteView.as_view(), name='question_delete'),
     path('student_quiz_list/', StudentQuizListView.as_view(), name='student_quiz_list'),
-    path('student_quiz_results/', TakenQuizListView.as_view(), name='student_quiz_results'),
+    # path('student_quiz_results/', TakenQuizListView.as_view(), name='student_quiz_results'),
     path('student_quiz/<int:pk>/', take_quiz, name='take_quiz'),
     path('submit_quiz/<int:quiz_id>/', submit_quiz, name='submit_quiz'),
     path('view_attempt/<int:attempt_id>/', view_attempt, name='view_attempt'),
     path('subjects/', subjects_view, name='subjects'),
     path('subjects/<int:subject_id>/', subject_detail_view, name='subject_detail'),
+    path('student/<int:student_id>/', student_view, name='student_view'),
+    path('search', search, name='search_bar'),
 ] 

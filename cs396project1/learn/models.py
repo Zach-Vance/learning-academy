@@ -67,6 +67,9 @@ class Comment(models.Model):
     # Method to return a string representation of the object
     def __str__(self):
         return 'Comment by {}'.format(self.name)
+    
+    def get_absolute_url(self):
+        return reverse('post', kwargs={'pk': self.post.pk})
 
 # Define the Quiz model
 class Quiz(models.Model):
@@ -125,24 +128,6 @@ class StudentAnswer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
 
-class SubjectStudentScore(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    total_score = models.IntegerField()
-
-# SubjectQuestionAnswer model
-class SubjectQuestionAnswer(models.Model):
-    user = models.ForeignKey(User, related_name='question_answers', on_delete=models.CASCADE)
-    question = models.ForeignKey(Question, related_name='question_answers', on_delete=models.CASCADE)
-    answer_submitted = models.TextField()
-
-# SubjectQuestionAttempt model
-class SubjectQuestionAttempt(models.Model):
-    user = models.ForeignKey(User, related_name='question_attempts', on_delete=models.CASCADE)
-    question = models.ForeignKey(Question, related_name='question_attempts', on_delete=models.CASCADE)
-    attempt_number = models.IntegerField()
-    answer_submitted = models.TextField()
-    is_correct = models.BooleanField(default=False)
 
 
 #removes the need for file1, file2, file3
@@ -158,3 +143,23 @@ class AttachedFile(models.Model):
             raise ValueError("An attached file cannot belong to both a post and a lesson.")
         super(AttachedFile, self).save(*args, **kwargs)
 
+# SubjectQuestionAttempt model
+# class SubjectQuestionAttempt(models.Model):
+#     user = models.ForeignKey(User, related_name='question_attempts', on_delete=models.CASCADE)
+#     question = models.ForeignKey(Question, related_name='question_attempts', on_delete=models.CASCADE)
+#     attempt_number = models.IntegerField()
+#     answer_submitted = models.TextField()
+#     is_correct = models.BooleanField(default=False)
+
+
+# # SubjectQuestionAnswer model
+# class SubjectQuestionAnswer(models.Model):
+#     user = models.ForeignKey(User, related_name='question_answers', on_delete=models.CASCADE)
+#     question = models.ForeignKey(Question, related_name='question_answers', on_delete=models.CASCADE)
+#     answer_submitted = models.TextField()
+
+
+# class SubjectStudentScore(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+#     total_score = models.IntegerField()

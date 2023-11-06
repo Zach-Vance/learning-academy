@@ -58,10 +58,7 @@
             </li>
           {% elif user.is_student %}
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'student_quiz_list' %}">Available Quizzes</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'student_quiz_results' %}">Grades</a>
+              <a class="nav-link" href="{% url 'student_quiz_list' %}">Quizzes</a>
             </li>
           {% endif %}
 
@@ -88,6 +85,11 @@
           </li>
         {% endif %}
         </ul>
+        <form class ="d-flex" method=POST action ="{% url 'search_bar'%}">
+          {% csrf_token %}
+          <input class = "form-control me-2" type ="search" palceholder="Search" aria-label="Search" name="searched">
+          <button class="btn btn-secondary" type="submit">Search</button>
+        </form>
       </div>
     </div>
   </nav>

@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <title>Student Profile</title>
+    <!-- Include Bootstrap CSS for styling -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+        <h1>Student Profile: {{ student_user.username }}</h1>
+        <p>First Name: {{ student_user.first_name }}</p>
+        <p>Last Name: {{ student_user.last_name }}</p>
+        <p>Email: {{ student_user.email }}</p>
+
+        {% if not user.is_student %}
+        <h2>Subject Scores</h2>
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Subject</th>
+                    <th>Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subject, average in subjects_average.items %}
+                <tr>
+                    <td>{{ subject }}</td>
+                    <td>{{ average|floatformat:2 }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+
+        
+        <h2>Taken Quizzes</h2>
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Quiz</th>
+                    <th>Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quiz in taken_quizzes %}
+                <tr>
+                    <td><a href="/quiz/{{ quiz.quiz.pk }}/results/">{{ quiz.quiz.name }}</a></td>
+                    <td>{{ quiz.score }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+
+
+        {% if is_owner_or_teacher %}
+        <h2>Subject Scores</h2>
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Subject</th>
+                    <th>Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subject, average in subjects_average.items %}
+                <tr>
+                    <td>{{ subject }}</td>
+                    <td>{{ average|floatformat:2 }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+
+        
+        <h2>Taken Quizzes</h2>
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Quiz</th>
+                    <th>Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quiz in taken_quizzes %}
+                <tr>
+                    <td><a href="/quiz/{{ quiz.quiz.pk }}/results/">{{ quiz.quiz.name }}</a></td>
+                    <td>{{ quiz.score }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        <h2>Posts</h2>
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Title</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for post in posts %}
+                <tr>
+                    <td><a href="/post/{{ post.pk }}">{{ post.title }}</a></td>
+                    <td>{{ post.date|date:"D d M Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2>Comments</h2>
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Comment</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comment in comments %}
+                <tr>
+                    <td><a href="/post/{{ comment.post.pk }}">{{ comment.body |striptags }}</a></td>
+                    <td>{{ comment.date|date:"D d M Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    <!-- Include Bootstrap JS and its dependencies (Optional, for Bootstrap JS components) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.9/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+{% endblock %}
