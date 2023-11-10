@@ -142,24 +142,3 @@ class AttachedFile(models.Model):
         if self.post and self.lesson:
             raise ValueError("An attached file cannot belong to both a post and a lesson.")
         super(AttachedFile, self).save(*args, **kwargs)
-
-# SubjectQuestionAttempt model
-# class SubjectQuestionAttempt(models.Model):
-#     user = models.ForeignKey(User, related_name='question_attempts', on_delete=models.CASCADE)
-#     question = models.ForeignKey(Question, related_name='question_attempts', on_delete=models.CASCADE)
-#     attempt_number = models.IntegerField()
-#     answer_submitted = models.TextField()
-#     is_correct = models.BooleanField(default=False)
-
-
-# # SubjectQuestionAnswer model
-# class SubjectQuestionAnswer(models.Model):
-#     user = models.ForeignKey(User, related_name='question_answers', on_delete=models.CASCADE)
-#     question = models.ForeignKey(Question, related_name='question_answers', on_delete=models.CASCADE)
-#     answer_submitted = models.TextField()
-
-
-# class SubjectStudentScore(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-#     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-#     total_score = models.IntegerField()

@@ -1,7 +1,7 @@
 digraph model_graph {
   // Dotfile by Django-Extensions graph_models
-  // Created: 2023-11-05 23:08
-  // Cli Options: learn accounts --dot -o er_diagram.dot
+  // Created: 2023-11-05 23:09
+  // Cli Options: learn accounts --dot -o er_diagram1.dot
 
   fontname = "Roboto"
   fontsize = 8
