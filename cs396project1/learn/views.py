@@ -1,12 +1,13 @@
+from collections import Counter
 from decimal import Decimal
 from django.shortcuts import render,redirect 
 from django.contrib import messages
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView, View, TemplateView
-from .models import Comment, Post, Lesson, Quiz, Question, Answer, Student, TakenQuiz, StudentAnswer, Subject, AttachedFile
+from .models import Comment, Grade, GradeScale, Post, Lesson, Quiz, Question, Answer, Student, TakenQuiz, StudentAnswer, Subject, AttachedFile
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from django.forms import inlineformset_factory
-from .forms import PostForm, CommentForm, LessonForm, QuestionForm, BaseAnswerInlineFormSet, TakeQuizForm
+from .forms import GradeScaleForm, PostForm, CommentForm, LessonForm, QuestionForm, BaseAnswerInlineFormSet, TakeQuizForm
 from django.conf import settings
 from hitcount.views import HitCountDetailView
 from django.http import HttpResponseForbidden
@@ -25,7 +26,9 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Max, Subquery, OuterRef
 from django.contrib.auth import get_user_model
 from scipy.stats import percentileofscore
-
+from datetime import timedelta, timezone
+import datetime
+from django import forms
 # User = settings.AUTH_USER_MODEL
 User = get_user_model()
 
@@ -441,6 +444,8 @@ def subjects_view(request):
     subjects = Subject.objects.all()
     return render(request, 'subjects.html', {'subjects': subjects})
 
+
+import json
 def subject_detail_view(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
     taken_quizzes = {}
@@ -451,6 +456,8 @@ def subject_detail_view(request, subject_id):
     highest_score = 0
     lowest_score = 500
     average_score = 250
+    SEMESTER_LENGTH = 1  # weeks, configurable
+
 
     # Ensure the user is authenticated and is a student
     if request.user.is_authenticated and hasattr(request.user, 'student'):
@@ -569,6 +576,55 @@ def subject_detail_view(request, subject_id):
 
         average_quiz_score = total_score / count if count else 0
 
+        now = datetime.datetime.now()
+
+        semesters = []
+
+        # Calculate the start and end date for each semester
+        for i in range(5):  # Last 5 semesters
+            end_date = now - timedelta(weeks=i * SEMESTER_LENGTH)
+            start_date = end_date - timedelta(weeks=SEMESTER_LENGTH)
+            semesters.append((start_date, end_date))
+
+        # Calculate weighted scores for each semester
+            semester_scores = []
+            for start_date, end_date in semesters:
+                quizzes_in_semester = Quiz.objects.filter(
+                    subject=subject, 
+                    taken_quizzes__date__range=[start_date, end_date]
+                ).distinct()
+
+                total_weighted_scores = Decimal(0)
+                student_ids = set()
+
+                for quiz in quizzes_in_semester:
+                    latest_attempts = TakenQuiz.objects.filter(
+                        quiz=quiz, 
+                        date__range=[start_date, end_date]
+                    ).values('student').annotate(latest_attempt=Max('attempt_number'))
+
+                    for latest_attempt in latest_attempts:
+                        student_id = latest_attempt['student']
+                        student_ids.add(student_id)
+
+                        latest_score = TakenQuiz.objects.get(
+                            student_id=student_id, 
+                            quiz=quiz, 
+                            attempt_number=latest_attempt['latest_attempt']
+                        ).score
+
+                        weighted_score = (Decimal(latest_score) * quiz.weight) / 100
+                        total_weighted_scores += weighted_score
+
+                total_students = len(student_ids)
+                average_score_for_semester = total_weighted_scores / total_students if total_students else 0
+                semester_scores.append(average_score_for_semester)
+
+            semester_scores_float = [float(score) for score in semester_scores]
+
+
+            semester_dates = [f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}" for start_date, end_date in semesters]
+
     posts = Post.objects.filter(subject=subject)
     lessons = Lesson.objects.filter(subject=subject)
 
@@ -585,6 +641,8 @@ def subject_detail_view(request, subject_id):
         'highest_score': highest_score,
         'lowest_score': lowest_score,
         'average_score': average_score,
+        'semester_dates_json': json.dumps(semester_dates),
+        'semester_scores_json': json.dumps(semester_scores_float),
     })
 
 @login_required
@@ -679,7 +737,6 @@ def search(request):
         return render(request, 'search.html', context)
     else:
         return render(request, 'search.html', {})
-    
 
 def update_quiz_weights(request):
     if request.method == 'POST':
@@ -697,3 +754,173 @@ def update_quiz_weights(request):
 
         messages.success(request, 'Quiz weights updated successfully.')
     return redirect('subjects')  # Redirect to an appropriate view
+
+class GradeForm(forms.ModelForm):
+    class Meta:
+        model = Grade
+        fields = ['student', 'letter_grade']
+        widgets = {
+            'student': forms.HiddenInput()
+        }
+
+
+
+def gradebook_view(request, subject_id):
+    subject = get_object_or_404(Subject, pk=subject_id)
+    subject = get_object_or_404(Subject, pk=subject_id)
+    sort_order = request.GET.get('sort', 'asc')  # Default sort order
+
+    def calculate_letter_grade(score, grade_scale):
+        if score >= grade_scale.grade_a:
+            return 'A'
+        elif score >= grade_scale.grade_b:
+            return 'B'
+        elif score >= grade_scale.grade_c:
+            return 'C'
+        elif score >= grade_scale.grade_d:
+            return 'D'
+        else:
+            return 'F'
+
+    if not request.user.is_student:
+        students = Student.objects.filter(taken_quizzes__quiz__subject=subject).distinct()
+        student_averages = []
+        grade_distribution = Counter()
+
+        grade_scale, created = GradeScale.objects.get_or_create(subject=subject)
+
+        ##GRADE SCALE FORM
+        if request.method == 'POST':
+            grade_scale_form = GradeScaleForm(request.POST)
+
+            grade_scale.grade_a = Decimal(request.POST.get('grade_a', '0'))
+            grade_scale.grade_b = Decimal(request.POST.get('grade_b', '0'))
+            grade_scale.grade_c = Decimal(request.POST.get('grade_c', '0'))
+            grade_scale.grade_d = Decimal(request.POST.get('grade_d', '0'))
+            grade_scale.subject = subject
+            grade_scale.save()
+        else:
+            grade_scale, created = GradeScale.objects.get_or_create(subject=subject)
+            grade_scale_form = GradeScaleForm(instance=grade_scale)
+
+        for student in students:
+            total_weighted_score = 0
+            total_weight = 0
+
+            latest_attempts = TakenQuiz.objects.filter(
+                student=student, 
+                quiz__subject=subject
+            ).values('quiz').annotate(latest_attempt=Max('attempt_number'))
+
+            for latest_attempt in latest_attempts:
+                quiz = Quiz.objects.get(pk=latest_attempt['quiz'])
+                latest_score = TakenQuiz.objects.get(
+                    student=student, 
+                    quiz=quiz, 
+                    attempt_number=latest_attempt['latest_attempt']
+                ).score
+
+                total_weighted_score += Decimal(latest_score) * quiz.weight
+                total_weight += quiz.weight
+
+            avg_weighted_score = total_weighted_score / total_weight if total_weight else 0
+            letter_grade = calculate_letter_grade(avg_weighted_score, grade_scale)
+
+            student_averages.append({
+                'student': student.user.get_full_name(),
+                'average_score': avg_weighted_score,
+                'letter_grade': letter_grade
+            })
+        highest_score = 0
+        lowest_score = 100  # Assuming 100 is the max score
+        total_score = 0
+
+        for student_average in student_averages:
+            score = student_average['average_score']
+            highest_score = max(highest_score, score)
+            lowest_score = min(lowest_score, score)
+            total_score += score
+
+        average_score = total_score / len(student_averages) if student_averages else 0
+
+        ##BARGRAPH LOGIC
+        now = datetime.datetime.now()
+        SEMESTER_LENGTH = 1  # weeks, adjust as needed
+        semesters = []
+        semester_scores = []
+
+        for i in range(5):  # Last 5 semesters
+            end_date = now - timedelta(weeks=i * SEMESTER_LENGTH)
+            start_date = end_date - timedelta(weeks=SEMESTER_LENGTH)
+            semesters.append((start_date, end_date))
+
+        # Calculate weighted scores for each semester
+            semester_scores = []
+            for start_date, end_date in semesters:
+                quizzes_in_semester = Quiz.objects.filter(
+                    subject=subject, 
+                    taken_quizzes__date__range=[start_date, end_date]
+                ).distinct()
+
+                total_weighted_scores = Decimal(0)
+                student_ids = set()
+
+                for quiz in quizzes_in_semester:
+                    latest_attempts = TakenQuiz.objects.filter(
+                        quiz=quiz, 
+                        date__range=[start_date, end_date]
+                    ).values('student').annotate(latest_attempt=Max('attempt_number'))
+
+                    for latest_attempt in latest_attempts:
+                        student_id = latest_attempt['student']
+                        student_ids.add(student_id)
+
+                        latest_score = TakenQuiz.objects.get(
+                            student_id=student_id, 
+                            quiz=quiz, 
+                            attempt_number=latest_attempt['latest_attempt']
+                        ).score
+
+                        weighted_score = (Decimal(latest_score) * quiz.weight) / 100
+                        total_weighted_scores += weighted_score
+
+                total_students = len(student_ids)
+                average_score_for_semester = total_weighted_scores / total_students if total_students else 0
+                semester_scores.append(average_score_for_semester)
+
+            semester_scores_float = [float(score) for score in semester_scores]
+
+
+            semester_dates = [f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}" for start_date, end_date in semesters]
+
+        if sort_order == 'desc':
+            student_averages = sorted(student_averages, key=lambda x: x['average_score'], reverse=True)
+        else:
+            student_averages = sorted(student_averages, key=lambda x: x['average_score'])
+        ##PIECHART LOGIC
+        grade_distribution = Counter()
+        for student_average in student_averages:
+            grade = student_average.get('letter_grade')  # Assuming 'grade' is the key for the grade
+            grade_distribution[grade] += 1
+        print(grade_distribution)
+
+        
+
+
+        context = {
+            'subject': subject,
+            'student_averages': student_averages,
+            'highest_score': highest_score,
+            'lowest_score': lowest_score,
+            'average_score': average_score,
+            'semester_dates_json': json.dumps(semester_dates),
+            'semester_scores_json': json.dumps(semester_scores_float),
+            'sort_order': sort_order,
+            'grade_distribution': grade_distribution,
+            'grade_scale_form': grade_scale_form,
+        }
+        return render(request, 'gradebook.html', context)
+
+    else:
+        messages.error(request, "You do not have permission to view this page.")
+        return redirect('home')  # Replace 'home' with the name of your home page view

@@ -1,6 +1,6 @@
 from django import forms
 from django.forms.utils import ValidationError
-from .models import Post, Comment, Lesson, Answer, Question, Student, StudentAnswer, AttachedFile
+from .models import GradeScale, Post, Comment, Lesson, Answer, Question, Student, StudentAnswer, AttachedFile
 
 # Define a form for creating or updating a lesson
 class LessonForm(forms.ModelForm):
@@ -117,3 +117,8 @@ class AttachedFileForm(forms.ModelForm):
         widgets = {
             'file': forms.FileInput(attrs={'class': 'form-control'}),
         }
+
+class GradeScaleForm(forms.ModelForm):
+    class Meta:
+        model = GradeScale
+        fields = ['grade_a', 'grade_b', 'grade_c', 'grade_d']

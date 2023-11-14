@@ -15,7 +15,6 @@
             <p><strong>Lowest Score:</strong> {{ lowest_score }}%</p>
             <p><strong>Most Missed Question:</strong> {{ most_missed_question }}</p>
             <p><strong>Average Score:</strong> {{ quiz_score.average_score | default_if_none:0.0 }}%</p>
-            <p><strong>Average Final Attempt Score:</strong> {{ final_attempt_avg | default_if_none:0.0 }}%</p>
         </div>
     </div>
 

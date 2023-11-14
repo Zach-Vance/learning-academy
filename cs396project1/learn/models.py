@@ -129,7 +129,23 @@ class StudentAnswer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
 
+class Grade(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    letter_grade = models.CharField(max_length=2)
 
+    def __str__(self):
+        return f"{self.student.name} - {self.subject.name}: {self.letter_grade}"
+
+class GradeScale(models.Model):
+    subject = models.OneToOneField(Subject, on_delete=models.CASCADE)
+    grade_a = models.IntegerField(default=90)
+    grade_b = models.IntegerField(default=80)
+    grade_c = models.IntegerField(default=70)
+    grade_d = models.IntegerField(default=60)
+    # You can add more fields if needed
+    def __str__(self):
+        return f"A: {self.grade_a}, B: {self.grade_b}, C: {self.grade_c}, D: {self.grade_d}"
 
 #removes the need for file1, file2, file3
 class AttachedFile(models.Model):

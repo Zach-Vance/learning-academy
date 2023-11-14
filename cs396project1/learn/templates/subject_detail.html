@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
 <style>
    
     .section-card {
@@ -16,6 +19,10 @@
     }
     .table th, .table td {
         vertical-align: middle; 
+    }
+    #semesterScoreChart {
+        width: 800px; /* Adjust as needed */
+        height: 400px; /* Adjust as needed */
     }
 </style>
 
@@ -106,12 +113,88 @@
         </div>
     </div>
 </div>
-<div class="section-card-header">
-    Student Scores
-    <div class="float-right">
+
+
+<div class="section-card">
+    <div class="section-card-header">{{ subject.name }} Grades By Semester</div>
+    <div style="max-width: 600px; margin: auto;">
+        <canvas id="semesterScoreChart"></canvas>
+    </div>
+    <script>
+        var subjectName = "{{ subject.name|escapejs }}";
+        var semesterDates = JSON.parse('{{ semester_dates_json|safe }}');
+        var semesterScores = JSON.parse('{{ semester_scores_json|safe }}');
+
+        document.addEventListener('DOMContentLoaded', function() {
+        try {
+            var ctx = document.getElementById('semesterScoreChart').getContext('2d');
+            var semesterScoreChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: semesterDates,
+                    datasets: [{
+                        label: 'Student Scores',
+                        data: semesterScores,
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Average Score'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Semesters'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Student ' + subjectName + ' Scores for Past 5 Semesters',
+                            font: {
+                                size: 18
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            enabled: true
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Error initializing chart:", error);
+        }
+    });
+
+    </script>
+</div>
+
+
+<div class="section-card-header d-flex justify-content-between align-items-center">
+    <span>Student Scores</span>
+    <div>
         <a href="?sort=asc" class="btn btn-sm {% if sort_order == 'asc' %}btn-success{% else %}btn-outline-success{% endif %}">Sort Ascending</a>
         <a href="?sort=desc" class="btn btn-sm {% if sort_order == 'desc' %}btn-success{% else %}btn-outline-success{% endif %}">Sort Descending</a>
     </div>
+</div>
+<br/>
+<div class="float-right">
+    <a href="{% url 'gradebook' subject.id %}" class="btn btn-primary">Go to Gradebook</a>
 </div>
     <div class="section-card-body">
         <table class="table">
@@ -268,5 +351,5 @@
 Please login to view this page.
 </div>
 {% endif %}
-
 {% endblock %}
+
