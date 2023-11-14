@@ -57,7 +57,7 @@
 <div class="section-card">
     <div class="section-card-header">Taken Quizzes</div>
     <div class="section-card-body">
-        <h6>Average Quiz Score: {{ average_quiz_score|floatformat:2 }}%</h6>
+        <h6>Average Quiz Score: {{ average_quiz_score|floatformat:2 }}% ({{ student_avg_percentile|floatformat:2 }}th percentile)</h6>
         <!-- Taken Quizzes Table -->
         <table class="table">
             <thead>
@@ -65,6 +65,7 @@
                     <th>Quiz</th>
                     <th>Attempt</th>
                     <th>Score</th>
+                    <th>Percentile</th>
                 </tr>
             </thead>
             <tbody>
@@ -73,6 +74,7 @@
                         <td><a href="{% url 'view_attempt' taken_quiz.id %}">{{ taken_quiz.quiz.name }}</a></td>
                         <td>{{ taken_quiz.attempt_number }}</td>
                         <td>{{ taken_quiz.score }}</td>
+                        <td>{{ taken_quiz.percentile|floatformat:2 }}th percentile</td>
                     </tr>
                 {% empty %}
                     <tr>
@@ -85,40 +87,103 @@
 </div>
 <hr/>
 {% else %}
+
 <div class="section-card">
-    <div class="section-card-header">Quizzes</div>
+    <div class="section-card-header">
+        Score Statistics
+    </div>
     <div class="section-card-body">
-        <h6>Average Quiz Score: {{ average_quiz_score|floatformat:2 }}%</h6>
-        <!-- Quizzes Table -->
-        <table class="table">
-        <thead>
-            <tr>
-                <th>Quiz</th>
-                <th>Questions</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for quiz in quizzes %}
-                <tr>
-                    <td><a href="{% url 'edit_quiz' quiz.pk %}">{{ quiz.name }}</a></td>
-                    <td>{{ quiz.questions_count }}</td>
-                    <td class="text-right">
-                        <a href="{% url 'quiz_results' quiz.pk %}" class="btn btn-primary">View Results</a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center font-italic">There are no quizzes for this subject yet.</td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        {% if not user.is_student %} 
-        <a href="{% url 'quiz_add' %}" class="btn btn-success" role="button">Add Quiz</a>
-        {% endif %}
+        <div class="row">
+            <div class="col-md-4">
+                <strong>Highest Score:</strong> {{ highest_score|floatformat:2  }}%
+            </div>
+            <div class="col-md-4">
+                <strong>Lowest Score:</strong> {{ lowest_score|floatformat:2  }}%
+            </div>
+            <div class="col-md-4">
+                <strong>Average Score:</strong> {{ average_score|floatformat:2 }}%
+            </div>
+        </div>
     </div>
 </div>
+<div class="section-card-header">
+    Student Scores
+    <div class="float-right">
+        <a href="?sort=asc" class="btn btn-sm {% if sort_order == 'asc' %}btn-success{% else %}btn-outline-success{% endif %}">Sort Ascending</a>
+        <a href="?sort=desc" class="btn btn-sm {% if sort_order == 'desc' %}btn-success{% else %}btn-outline-success{% endif %}">Sort Descending</a>
+    </div>
+</div>
+    <div class="section-card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Average Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student_average in student_averages %}
+                    <tr>
+                        <td>{{ student_average.student.user.get_full_name }}</td>
+                        <td>{{ student_average.average_score|floatformat:2 }}%</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="2" class="text-center font-italic">No quiz scores available.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+
+    <div class="section-card">
+        <div class="section-card-header">Quizzes</div>
+        <div class="section-card-body">
+            <form method="post" action="{% url 'update_quiz_weights' %}">
+                {% csrf_token %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Quiz</th>
+                            <th>Questions</th>
+                            <th>Weights</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for quiz in quizzes %}
+                            <tr>
+                                <td>
+                                    {% if quiz.is_owned_by_teacher %}
+                                        <a href="{% url 'edit_quiz' quiz.pk %}">{{ quiz.name }}</a>
+                                    {% else %}
+                                        {{ quiz.name }}
+                                    {% endif %}
+                                </td>
+                                
+                                <td>{{ quiz.questions_count }}</td>
+                                <td>
+                                    <input type="number" name="weight_{{ quiz.pk }}" value="{{ quiz.weight }}" min="0" step="0.01">
+                                </td>
+                                <td class="text-right">
+                                    {% if quiz.is_owned_by_teacher %}
+                                        <a href="{% url 'quiz_results' quiz.pk %}" class="btn btn-primary">View Results</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center font-italic">There are no quizzes for this subject yet.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <button type="submit" class="btn btn-primary">Update Weights</button>
+                </table>
+        </form>
+        </div>
+    </div>
+
+
 <hr/>
 {% endif %}
 

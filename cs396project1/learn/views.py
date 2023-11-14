@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.shortcuts import render,redirect 
 from django.contrib import messages
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView, View, TemplateView
@@ -23,6 +24,7 @@ from .forms import PostForm, LessonForm, AttachedFileForm
 from django.contrib.auth.decorators import login_required
 from django.db.models import Max, Subquery, OuterRef
 from django.contrib.auth import get_user_model
+from scipy.stats import percentileofscore
 
 # User = settings.AUTH_USER_MODEL
 User = get_user_model()
@@ -357,53 +359,6 @@ class StudentQuizListView(TemplateView):
         return context
 
 
-
-
-    # model = Quiz
-    # ordering = ('name',)
-    # context_object_name = 'quizzes'
-    # template_name = 'student_quiz_list.html'
-
-    # def get_queryset(self):
-    #     student = self.request.user.student
-    #     all_quizzes = Quiz.objects.all()
-    #     available_quizzes = []
-    #     for quiz in all_quizzes:
-    #         num_attempts = TakenQuiz.objects.filter(student=student, quiz=quiz).count()
-    #         if num_attempts < 3:
-    #             quiz.num_attempts = num_attempts  # Attach the number of attempts to the quiz object
-    #             quiz.questions_count = quiz.questions.count()  # Attach the number of questions to the quiz object
-    #             available_quizzes.append(quiz)
-    #     return available_quizzes
-
-    # def get_context_data(self, **kwargs):
-    #     context = super().get_context_data(**kwargs)
-    #     student = self.request.user.student
-
-    #     # Add the number of attempts and questions for each quiz to the context
-    #     quiz_details = {}
-    #     for quiz in context['quizzes']:
-    #         num_attempts = TakenQuiz.objects.filter(student=student, quiz=quiz).count()
-    #         num_questions = Question.objects.filter(quiz=quiz).count()
-    #         quiz_details[quiz.id] = {'attempts': num_attempts, 'questions': num_questions}
-
-    #     context['quiz_details'] = quiz_details
-    #     return context
-
-# # Define a view for displaying a list of taken quizzes for a student
-# class TakenQuizListView(ListView):
-#     model = TakenQuiz
-#     context_object_name = 'taken_quizzes'
-#     template_name = 'student_quiz_results.html'
-
-#     # Override the get_queryset method to customize the queryset
-#     def get_queryset(self):
-#         queryset = self.request.user.student.taken_quizzes \
-#             .select_related('quiz') \
-#             .order_by('quiz__name')
-#         return queryset
-
-
 def take_quiz(request, pk):
     quiz = Quiz.objects.get(id=pk)
     student = request.user.student
@@ -489,7 +444,13 @@ def subjects_view(request):
 def subject_detail_view(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
     taken_quizzes = {}
+    student_averages = []
     average_quiz_score = 0
+    student_avg_percentile = 0
+    sort_order = request.GET.get('sort', 'asc')
+    highest_score = 0
+    lowest_score = 500
+    average_score = 250
 
     # Ensure the user is authenticated and is a student
     if request.user.is_authenticated and hasattr(request.user, 'student'):
@@ -498,6 +459,8 @@ def subject_detail_view(request, subject_id):
         distinct_student_quizzes = TakenQuiz.objects.filter(student=request.user.student, quiz__subject=subject).values('student', 'quiz').distinct()
         total_score = 0
         count = 0
+
+        taken_quizzes = TakenQuiz.objects.filter(student=request.user.student, quiz__subject=subject)
 
         for item in distinct_student_quizzes:
             student_id = item['student']
@@ -512,25 +475,82 @@ def subject_detail_view(request, subject_id):
         quizzes = Quiz.objects.filter(subject=subject)
         available_quizzes = []
         for quiz in quizzes:
+            all_scores = list(TakenQuiz.objects.filter(quiz=quiz)
+                              .values_list('score', flat=True)
+                              .order_by('score'))
+
+            for tq in taken_quizzes:
+                if tq.quiz == quiz:
+                    tq.percentile = percentileofscore(all_scores, tq.score, kind='weak')
             num_attempts = TakenQuiz.objects.filter(student=request.user.student, quiz=quiz).count()
             if num_attempts < 3:
                 quiz.num_attempts = num_attempts
                 quiz.questions_count = quiz.questions.count()
                 available_quizzes.append(quiz)
         quizzes = available_quizzes
-        # Filter taken quizzes by the subject and the current student
-        taken_quizzes = TakenQuiz.objects.filter(student=request.user.student, quiz__subject=subject)
         # Calculate the average score
         average_quiz_score = total_score / count if count else 0
+
+        all_average_scores = TakenQuiz.objects.filter(quiz__subject=subject) \
+            .values('student') \
+            .annotate(avg_score=Avg('score')) \
+            .values_list('avg_score', flat=True) \
+            .order_by('avg_score')
+       
+        student_avg_percentile = percentileofscore(all_average_scores, average_quiz_score, kind='weak')
     else:
-        quizzes = Quiz.objects.filter(owner=request.user, subject=subject) \
-            .annotate(questions_count=Count('questions', distinct=True)) \
-            .annotate(taken_count=Count('taken_quizzes', distinct=True))
-    
+        # quizzes = Quiz.objects.filter(owner=request.user, subject=subject) \
+        #     .annotate(questions_count=Count('questions', distinct=True)) \
+        #     .annotate(taken_count=Count('taken_quizzes', distinct=True))
+    # Fetch all quizzes for the subject
+        quizzes = Quiz.objects.filter(subject=subject) \
+            .annotate(questions_count=Count('questions', distinct=True))
+
+        # Mark quizzes that belong to the logged-in teacher
+        for quiz in quizzes:
+            quiz.is_owned_by_teacher = (quiz.owner == request.user)
 
         # Initialize variables to calculate the average.
         total_score = 0
         count = 0
+        students = Student.objects.filter(taken_quizzes__quiz__subject=subject).distinct()
+
+        #student scores calculations
+        for student in students:
+            total_weighted_score = 0
+            total_weight = 0
+
+            latest_attempts = TakenQuiz.objects.filter(
+                student=student, 
+                quiz__subject=subject
+            ).values('quiz').annotate(latest_attempt=Max('attempt_number'))
+
+            for latest_attempt in latest_attempts:
+                quiz = Quiz.objects.get(pk=latest_attempt['quiz'])
+                latest_score = TakenQuiz.objects.get(
+                    student=student, 
+                    quiz=quiz, 
+                    attempt_number=latest_attempt['latest_attempt']
+                ).score
+
+                total_weighted_score += Decimal(latest_score) * quiz.weight
+                total_weight += quiz.weight
+
+            avg_weighted_score = total_weighted_score / total_weight if total_weight else 0
+
+            student_averages.append({
+                'student': student,
+                'average_score': avg_weighted_score
+            })
+        student_averages = sorted(student_averages, key=lambda x: x['average_score'], reverse=(sort_order == 'desc'))
+        # Calculate weighted average scores for each student
+        student_weighted_scores = [student_avg['average_score'] for student_avg in student_averages]
+
+        # Calculate statistics based on weighted average scores
+        highest_score = max(student_weighted_scores) if student_weighted_scores else 0
+        lowest_score = min(student_weighted_scores) if student_weighted_scores else 0
+        average_score = sum(student_weighted_scores) / len(student_weighted_scores) if student_weighted_scores else 0
+
 
         for quiz in quizzes:
             # Get distinct student-quiz pairs for the current quiz.
@@ -549,17 +569,22 @@ def subject_detail_view(request, subject_id):
 
         average_quiz_score = total_score / count if count else 0
 
-        
     posts = Post.objects.filter(subject=subject)
     lessons = Lesson.objects.filter(subject=subject)
 
     return render(request, 'subject_detail.html', {
         'subject': subject,
         'average_quiz_score': average_quiz_score,
+        'student_avg_percentile': student_avg_percentile,
         'quizzes': quizzes,
         'taken_quizzes': taken_quizzes,
+        'student_averages': student_averages, 
         'posts': posts,
-        'lessons': lessons
+        'lessons': lessons,
+        'sort_order': sort_order,
+        'highest_score': highest_score,
+        'lowest_score': lowest_score,
+        'average_score': average_score,
     })
 
 @login_required
@@ -605,50 +630,6 @@ def student_view(request, student_id):
 
     return render(request, 'student_view.html', context)
 
-
-# def search(request):
-#     if request.method == "POST":
-#         searched = request.POST.get('searched', '')  # Using get method for safety
-#         users = User.objects.filter(
-#             Q(username__icontains=searched) |
-#             Q(first_name__icontains=searched) |
-#             Q(last_name__icontains=searched)
-#         )
-        
-#         # Assuming 'Question' model has a 'text' field and is related to 'Quiz' through a 'ForeignKey'
-#         quizzes = Quiz.objects.filter(
-#             Q(name__icontains=searched) |
-#             Q(questions__text__icontains=searched) |
-#             Q(subject__name__icontains=searched)  # This line is for searching by subject name
-#         ).distinct() 
-
-#         subjects = Subject.objects.filter(name__icontains=searched)
-#         posts = Post.objects.filter(
-#             Q(title__icontains=searched) |
-#             Q(author__username__icontains=searched) |
-#             Q(subject__name__icontains=searched) |
-#             Q(body__icontains=searched)
-#         )
-#         lessons = Lesson.objects.filter(
-#             Q(title__icontains=searched) |
-#             Q(author__username__icontains=searched) |
-#             Q(subject__name__icontains=searched) |
-#             Q(body__icontains=searched)
-#         )
-        
-#         # Combine all queries into a single context
-#         context = {
-#             'searched': searched,
-#             'students': users,
-#             'quizzes': quizzes,
-#             'subjects': subjects,
-#             'posts': posts,
-#             'lessons': lessons
-#         }
-        
-#         return render(request, 'search.html', context)
-#     else:
-#         return render(request, 'search.html', {})
 def search(request):
     if request.method == "POST":
         searched = request.POST.get('searched', '')
@@ -698,3 +679,21 @@ def search(request):
         return render(request, 'search.html', context)
     else:
         return render(request, 'search.html', {})
+    
+
+def update_quiz_weights(request):
+    if request.method == 'POST':
+        for key, value in request.POST.items():
+            if key.startswith('weight_'):
+                quiz_id = key.split('_')[1]
+                try:
+                    weight = float(value)
+                    quiz = Quiz.objects.get(pk=quiz_id)
+                    quiz.weight = weight
+                    quiz.save()
+                except (ValueError, Quiz.DoesNotExist):
+                    # Handle errors: invalid weight or quiz not found
+                    messages.error(request, 'Error updating weights.')
+
+        messages.success(request, 'Quiz weights updated successfully.')
+    return redirect('subjects')  # Redirect to an appropriate view

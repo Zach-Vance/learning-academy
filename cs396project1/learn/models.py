@@ -77,6 +77,7 @@ class Quiz(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='quizzes')
     name = models.CharField(max_length=255)
+    weight = models.DecimalField(max_digits=5, decimal_places=2, default=1.00)  # Default weight is 1
 
     # Method to return a string representation of the object
     def __str__(self):
