@@ -1,28 +1,12 @@
 from django.urls import path
 # from . import views
-from .views import (HomeView, 
-                    LessonView,
-                    CreatePostView, 
-                    CreateLessonView, 
-                    LessonFeedView,
-                    PostView,
-                    QuizListView,
-                    QuizCreateView,
-                    QuizUpdateView,
-                    QuizDeleteView,
-                    QuizResultsView,
-                    question_add,
-                    question_change,
-                    QuestionDeleteView,
-                    StudentQuizListView,
-                    TakenQuizListView,
-                    take_quiz,
-                    )
+from .views import *
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('', HomeView.as_view(), name="home"),
+    path('', subjects_view, name="home"),
+    path('post_feed', PostFeedView.as_view(), name="post_feed"),
     path('post/<int:pk>', PostView.as_view(), name='post'),
     path('lesson/<int:pk>', LessonView.as_view(), name='lesson'),
     path('create_post/', CreatePostView.as_view(), name='create_post'),
@@ -38,6 +22,14 @@ urlpatterns = [
     path('quiz/<int:quiz_pk>/question/<int:question_pk>/', question_change, name='question_change'),
     path('quiz/<int:quiz_pk>/question/<int:question_pk>/delete/', QuestionDeleteView.as_view(), name='question_delete'),
     path('student_quiz_list/', StudentQuizListView.as_view(), name='student_quiz_list'),
-    path('student_quiz_results/', TakenQuizListView.as_view(), name='student_quiz_results'),
+    # path('student_quiz_results/', TakenQuizListView.as_view(), name='student_quiz_results'),
     path('student_quiz/<int:pk>/', take_quiz, name='take_quiz'),
+    path('submit_quiz/<int:quiz_id>/', submit_quiz, name='submit_quiz'),
+    path('view_attempt/<int:attempt_id>/', view_attempt, name='view_attempt'),
+    path('subjects/', subjects_view, name='subjects'),
+    path('subjects/<int:subject_id>/', subject_detail_view, name='subject_detail'),
+    path('student/<int:student_id>/', student_view, name='student_view'),
+    path('search', search, name='search_bar'),
+    path('update_quiz_weights/', update_quiz_weights, name='update_quiz_weights'),
+    path('subjects/<int:subject_id>/gradebook/', gradebook_view, name='gradebook'),
 ] 

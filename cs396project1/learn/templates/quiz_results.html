@@ -4,11 +4,25 @@
     <h1 class="mt-4 text-center">Quiz Results</h1>
     <div class="text-center my-3">
         <h2 class="mt-4">{{ quiz.name }} Results</h2>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <strong>Quiz Metrics</strong>
+        </div>
+        <div class="card-body">
+            <p><strong>Highest Score:</strong> {{ highest_score }}%</p>
+            <p><strong>Lowest Score:</strong> {{ lowest_score }}%</p>
+            <p><strong>Most Missed Question:</strong> {{ most_missed_question }}</p>
+            <p><strong>Average Score:</strong> {{ quiz_score.average_score | default_if_none:0.0 }}%</p>
+        </div>
+    </div>
+
+
     <hr />
     <div class="card">
         <div class="card-header">
             <strong>Quiz Results</strong>
-            <span class="ml-3">Average Score: {{ quiz_score.average_score | default_if_none:0.0 }}</span>
         </div>
         <div class="card-body">
             <table class="table table-bordered table-hover">
@@ -16,28 +30,29 @@
                     <tr>
                         <th>Student</th>
                         <th>Score</th>
+                        <th>Attempt</th> 
                     </tr>
                 </thead>
                 <tbody>
                     {% for taken_quiz in taken_quizzes %}
                         <tr>
-                            <td>{{ taken_quiz.student.user.username }} 
+                            <td>
+                                <a href="{% url 'view_attempt' taken_quiz.id %}">
+                                    {{ taken_quiz.student.user.username }}
+                                </a>
                             </td>
                             <td>{{ taken_quiz.score }}</td>
+                            <td>{{ taken_quiz.attempt_number }}</td> 
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="3" class="text-center font-italic">There are no results for this quiz yet.</td>
+                            <td colspan="4" class="text-center font-italic">There are no results for this quiz yet.</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            <!-- <div class="card-footer">
-                <span>Num taken: <strong>{{ total_taken_quizzes }}</strong></span>
-            </div> -->
         </div>
     </div>
 </div>
-
 
 {% endblock %}

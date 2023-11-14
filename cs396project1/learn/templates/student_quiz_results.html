@@ -2,38 +2,43 @@
 
 {% block content %}
 
-
-    
 <h1 class="mt-4 text-center">Quiz Results</h1>
-    <hr />
-    <div class="card">
-        <div class="card-header">
-            <strong>Quiz Results</strong>
-        </div>
-        <div class="card-body">
-            <table class="table table-bordered table-hover">
-                <thead class="thead-dark">
-                    <tr>
-                      <th>Quiz</th>
-                      <th>Score</th>
-                    </tr>
-                </thead>
-                <tbody>
-                  {% for taken_quiz in taken_quizzes %}
-                    <tr>
-                      <td>{{ taken_quiz.quiz.name }}</td>
-                      <td>{{ taken_quiz.score }}</td>
-                    </tr>
-                  {% empty %}
-                    <tr>
-                      <td class="bg-light text-center font-italic" colspan="3">You haven't completed any quiz yet.</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<hr />
+<div class="card">
+    <div class="card-header">
+        <strong>Quiz Results</strong>
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr>
+                  <th>Quiz</th>
+                  <th>Subject</th>
+                  <th>Attempt</th>
+                  <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+              {% for taken_quiz in taken_quizzes %}
+                <tr>
+                  <td>
+                    <a href="{% url 'view_attempt' taken_quiz.id %}">
+                      {{ taken_quiz.quiz.name }}
+                    </a>
+                  </td>
+                  <td>{{ taken_quiz.quiz.subject }}</td>
+                  <td>{{ taken_quiz.attempt_number }}</td>
+                  <td>{{ taken_quiz.score }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td class="bg-light text-center font-italic" colspan="3">You haven't completed any quiz yet.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
-
+</div>
 
 {% endblock %}

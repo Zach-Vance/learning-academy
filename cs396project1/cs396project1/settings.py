@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "accounts",
     "ckeditor",
     "hitcount",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [

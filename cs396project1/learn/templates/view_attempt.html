@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2>Quiz Attempt Details</h2>
+    <p>Student Username: {{ taken_quiz.student.user.username }}</p> 
+    <p>Quiz: {{ taken_quiz.quiz.name }}</p>
+    <p>Subject: {{ taken_quiz.quiz.subject }}</p>
+    <p>Attempt Number: {{ taken_quiz.attempt_number }}</p>
+    <p>Total Score: {{ taken_quiz.score }}</p>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Question</th>
+                <th>Your Answer</th>
+                <th>Is Correct</th>
+                {% if is_third_attempt %}
+                    <th>Correct Answer</th>
+                {% elif not user.is_student %}
+                    <th>Correct Answer</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for student_answer in student_answers %}
+                <tr>
+                    <td>{{ student_answer.question.text }}</td>
+                    <td>{{ student_answer.answer.text }}</td>
+                    <td>
+                        {% if student_answer.answer.is_correct %}
+                            <span style="color: green;">Yes</span>
+                        {% else %}
+                            <span style="color: red;">No</span>
+                        {% endif %}
+                    </td>
+                    {% if is_third_attempt  %}
+                        <td>
+                            {% for answer in student_answer.question.answers.all %}
+                                {% if answer.is_correct %}
+                                    {{ answer.text }}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                    {% elif not user.is_student %}
+                        <td>
+                            {% for answer in student_answer.question.answers.all %}
+                                {% if answer.is_correct %}
+                                    {{ answer.text }}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

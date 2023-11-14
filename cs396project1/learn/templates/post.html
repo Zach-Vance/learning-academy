@@ -19,22 +19,11 @@
                         <hr>
                         {{ post.body | safe }}
 
-                       
-                        {% if post.file1 %}
-                            File : <a href="{{ post.file1.url }}" download>Download file</a>
-                            <a href=" {{post.file1.url}} " target="_blank"> View file</a> 
+                        {% for attached_file in post.attachedfile_set.all %}
+                            File : <a href="{{ attached_file.file.url }}" download>Download file</a>
+                            <a href="{{ attached_file.file.url }}" target="_blank"> View file</a> 
                             <br/>
-                        {% endif %}
-                        {% if post.file2 %}
-                            File : <a href="{{ post.file2.url }}" download>Download file</a>
-                            <a href=" {{post.file2.url}} " target="_blank"> View file</a> 
-                            <br/>
-                        {% endif %}
-                        {% if post.file3 %}
-                            File : <a href="{{ post.file3.url }}" download>Download file</a>
-                            <a href=" {{post.file3.url}} " target="_blank"> View file</a> 
-                            <br/>
-                        {% endif %}
+                        {% endfor %}
 
                         <br><br>
                         <hr>
@@ -66,18 +55,17 @@
                         {% endif %}
 
                         <h3>Post a Comment</h3>
-                        <div class ="form-group" enctype="multipart/form-data">
+                        <div class="form-group" enctype="multipart/form-data">
                             <form method="POST">
                                 {% csrf_token %}
-                                {{ form.media}}
-                                {{ form.as_p}}
+                                {{ form.media }}
+                                {{ form.as_p }}
                                 <button class="btn btn-primary">Add Comment</button>
                             </form>
                             <script>
                                 var name = "{{user.id}}";
                                 document.getElementById("user").value = name;
-                        
-                        </script>
+                            </script>
                         </div>
                     </div>
                 </div>

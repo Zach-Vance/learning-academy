@@ -1,6 +1,94 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-6">
+      <!-- Quizzes Table -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Quizzes</h2>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>Quiz</th>
+                  <th>Subject</th>
+                  <th>Length</th>
+                  <th>Number of Attempts</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for quiz in quizzes %}
+                  <tr>
+                    <td class="align-middle">{{ quiz.name }}</td>
+                    <td class="align-middle">{{ quiz.subject }}</td>
+                    <td class="align-middle">{{ quiz.questions_count }} questions</td>
+                    <td class="align-middle">{{ quiz.num_attempts }}</td>
+                    <td class="text-center">
+                      <a href="{% url 'take_quiz' quiz.pk %}" class="btn btn-primary">Start quiz</a>
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td class="bg-light text-center font-italic" colspan="5">There are no quizzes right now.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <!-- Quiz Results Table -->
+      <h1 class="mt-4 text-center">Quiz Results</h1>
+      <hr />
+      <div class="card">
+          <div class="card-header">
+              <strong>Quiz Results</strong>
+          </div>
+          <div class="card-body">
+              <table class="table table-bordered table-hover">
+                  <thead class="thead-dark">
+                      <tr>
+                        <th>Quiz</th>
+                        <th>Subject</th>
+                        <th>Attempt</th>
+                        <th>Score</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                    {% for taken_quiz in taken_quizzes %}
+                      <tr>
+                        <td>
+                          <a href="{% url 'view_attempt' taken_quiz.id %}">
+                            {{ taken_quiz.quiz.name }}
+                          </a>
+                        </td>
+                        <td>{{ taken_quiz.quiz.subject }}</td>
+                        <td>{{ taken_quiz.attempt_number }}</td>
+                        <td>{{ taken_quiz.score }}</td>
+                      </tr>
+                    {% empty %}
+                      <tr>
+                        <td class="bg-light text-center font-italic" colspan="4">You haven't completed any quiz yet.</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+<!-- 
     <div class="card">
       <div class="card-header">
         <h2 class="card-title">Quizzes</h2>
@@ -11,7 +99,9 @@
             <thead>
               <tr>
                 <th>Quiz</th>
+                <th>Subject</th>
                 <th>Length</th>
+                <th>Number of Attempts</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -19,19 +109,22 @@
               {% for quiz in quizzes %}
                 <tr>
                   <td class="align-middle">{{ quiz.name }}</td>
+                  <td class="align-middle">{{ quiz.subject }}</td>
                   <td class="align-middle">{{ quiz.questions_count }} questions</td>
+                  <td class="align-middle">{{ quiz.num_attempts }}</td>
                   <td class="text-center">
                     <a href="{% url 'take_quiz' quiz.pk %}" class="btn btn-primary">Start quiz</a>
                   </td>
                 </tr>
               {% empty %}
                 <tr>
-                  <td class="bg-light text-center font-italic" colspan="3">There are no quizzes right now.</td>
+                  <td class="bg-light text-center font-italic" colspan="5">There are no quizzes right now.</td>
                 </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
-    </div>
-{% endblock %}
+    </div> -->
+
+
