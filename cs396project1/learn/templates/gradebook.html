@@ -177,6 +177,52 @@
 </div>
 
 <div class="section-card">
+    <div class="section-card-header">Quizzes</div>
+    <div class="section-card-body">
+        <form method="post" action="{% url 'update_quiz_weights' %}">
+            {% csrf_token %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Quiz</th>
+                        <th>Questions</th>
+                        <th>Weights</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for quiz in quizzes %}
+                        <tr>
+                            <td>
+                                {% if quiz.is_owned_by_teacher %}
+                                    <a href="{% url 'edit_quiz' quiz.pk %}">{{ quiz.name }}</a>
+                                {% else %}
+                                    {{ quiz.name }}
+                                {% endif %}
+                            </td>
+                            
+                            <td>{{ quiz.questions_count }}</td>
+                            <td>
+                                <input type="number" name="weight_{{ quiz.pk }}" value="{{ quiz.weight }}" min="0" step="0.01">
+                            </td>
+                            <td class="text-right">
+                                {% if quiz.is_owned_by_teacher %}
+                                    <a href="{% url 'quiz_results' quiz.pk %}" class="btn btn-primary">View Results</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center font-italic">There are no quizzes for this subject yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <button type="submit" class="btn btn-primary">Update Weights</button>
+            </table>
+    </form>
+    </div>
+</div>
+
+<div class="section-card">
     <div class="section-card-header">
         Edit Grade Scale
     </div>

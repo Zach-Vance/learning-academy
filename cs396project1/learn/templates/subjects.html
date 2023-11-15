@@ -22,7 +22,7 @@
             {% endfor %}
         </div>
     </div>
-
+        
     {% else %}
       <h1 class="mt-4 text-center display-4">Welcome to Learning Academy!</h1>
       <div class="text-center my-4">
@@ -34,7 +34,29 @@
           <p class="font-weight-bold">Your success starts with here!</p>
       </div>
     {% endif %}
-
+    {%if user.is_student%}
+    <div class="section-card">
+        <div class="section-card-header">Grades</div>
+        <div class="section-card-body">
+            <table class = "table">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+            {% for item in student_subject_grades %}
+                <tr>
+                    <td>{{ item.subject.name }}</td>
+                    <td>{{ item.grade }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+        </div>
+    </div>
+{% endif%}
     <style>
         .subject-card {
             position: relative;
@@ -73,6 +95,25 @@
 
         .subject-link {
             text-decoration: none;
+        }
+   
+        .section-card {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+            margin-bottom: 2rem; 
+        }
+        .section-card-header {
+            background-color: #ddf7ddfa; 
+            font-size: 1.5rem; 
+        }
+        .section-card-body {
+            padding: 1.5rem;
+        }
+        .table th, .table td {
+            vertical-align: middle; 
+        }
+        #semesterScoreChart {
+            width: 800px; /* Adjust as needed */
+            height: 400px; /* Adjust as needed */
         }
     </style>
 {% endblock %}

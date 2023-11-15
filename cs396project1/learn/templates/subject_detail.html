@@ -30,6 +30,39 @@
 <h2 class="mt-4 text-center mb-5">{{ subject.name }}</h2>
 <hr/>
 {%if user.is_student %}
+
+<div class="section-card">
+    <div class="section-card-header">
+        {{ subject.name }} Grade
+    </div>
+    <div class="section-card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                <td>{{ subject.name }}</td>
+                <td>{{ letter_grade }}</td>
+            </tbody>
+            </table>
+            
+<div class="section-card">
+    <div class="section-card-header">Grade Scale</div>
+    <div class="section-card-body">
+        <p><strong>A:</strong> {{ grade_scale.grade_a }}% and above</p>
+        <p><strong>B:</strong> {{ grade_scale.grade_b }}% - {{ grade_scale.grade_a|add:"-1" }}%</p>
+        <p><strong>C:</strong> {{ grade_scale.grade_c }}% - {{ grade_scale.grade_b|add:"-1" }}%</p>
+        <p><strong>D:</strong> {{ grade_scale.grade_d }}% - {{ grade_scale.grade_c|add:"-1" }}%</p>
+        <p><strong>F:</strong> Below {{ grade_scale.grade_d }}%</p>
+    </div>
+</div>
+    </div>
+    
+</div>
+
 <div class="section-card">
     <div class="section-card-header">Available Quizzes</div>
     <div class="section-card-body">

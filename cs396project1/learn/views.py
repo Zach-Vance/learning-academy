@@ -440,10 +440,69 @@ def view_attempt(request, attempt_id):
     return render(request, 'view_attempt.html', context)
 
 
+
 def subjects_view(request):
     subjects = Subject.objects.all()
-    return render(request, 'subjects.html', {'subjects': subjects})
+    student_subject_grades = []
+    
+    
+    if request.user.is_authenticated and hasattr(request.user, 'student'):
+        for subject in subjects:
+            # Get the grade scale for the subject
+            grade_scale = GradeScale.objects.get(subject=subject)
+            subjects = Subject.objects.all()
 
+            # Calculate the average weighted score
+            latest_attempts = TakenQuiz.objects.filter(
+                student=request.user.student, 
+                quiz__subject=subject
+            ).values('quiz').annotate(latest_attempt=Max('attempt_number'))
+
+            total_weighted_score = 0
+            total_weight = 0
+            for latest_attempt in latest_attempts:
+                quiz = Quiz.objects.get(pk=latest_attempt['quiz'])
+                latest_score = TakenQuiz.objects.get(
+                    student=request.user.student, 
+                    quiz=quiz, 
+                    attempt_number=latest_attempt['latest_attempt']
+                ).score
+
+                total_weighted_score += Decimal(latest_score) * quiz.weight
+                total_weight += quiz.weight
+
+            avg_weighted_score = total_weighted_score / total_weight if total_weight else 0
+
+            # Convert average score to letter grade
+            if avg_weighted_score >= grade_scale.grade_a:
+                letter_grade = 'A'
+            elif avg_weighted_score >= grade_scale.grade_b:
+                letter_grade = 'B'
+            elif avg_weighted_score >= grade_scale.grade_c:
+                letter_grade = 'C'
+            elif avg_weighted_score >= grade_scale.grade_d:
+                letter_grade = 'D'
+            else:
+                letter_grade = 'F'
+
+            student_subject_grades.append({'subject': subject, 'grade': letter_grade})
+
+    return render(request, 'subjects.html', {'subjects': subjects, 'student_subject_grades': student_subject_grades})
+
+def determine_letter_grade(grade_scale, score):
+    """
+    Determine the letter grade based on the score and grade scale.
+    """
+    if score >= grade_scale.grade_a:
+        return "A"
+    elif score >= grade_scale.grade_b:
+        return "B"
+    elif score >= grade_scale.grade_c:
+        return "C"
+    elif score >= grade_scale.grade_d:
+        return "D"
+    else:
+        return "F"
 
 import json
 def subject_detail_view(request, subject_id):
@@ -456,6 +515,10 @@ def subject_detail_view(request, subject_id):
     highest_score = 0
     lowest_score = 500
     average_score = 250
+    grade_scale = GradeScale.objects.get(subject=subject)
+    student_letter_grade = "Z"
+    semester_dates = []
+    semester_scores_float= []
     SEMESTER_LENGTH = 1  # weeks, configurable
 
 
@@ -497,6 +560,7 @@ def subject_detail_view(request, subject_id):
         quizzes = available_quizzes
         # Calculate the average score
         average_quiz_score = total_score / count if count else 0
+        student_letter_grade = determine_letter_grade(grade_scale, average_quiz_score)
 
         all_average_scores = TakenQuiz.objects.filter(quiz__subject=subject) \
             .values('student') \
@@ -643,6 +707,8 @@ def subject_detail_view(request, subject_id):
         'average_score': average_score,
         'semester_dates_json': json.dumps(semester_dates),
         'semester_scores_json': json.dumps(semester_scores_float),
+        'grade_scale': grade_scale,
+        'letter_grade': student_letter_grade,
     })
 
 @login_required
@@ -769,7 +835,9 @@ def gradebook_view(request, subject_id):
     subject = get_object_or_404(Subject, pk=subject_id)
     subject = get_object_or_404(Subject, pk=subject_id)
     sort_order = request.GET.get('sort', 'asc')  # Default sort order
-
+    quizzes = Quiz.objects.filter(subject_id=subject_id)
+    for quiz in quizzes:
+            quiz.is_owned_by_teacher = (quiz.owner == request.user)
     def calculate_letter_grade(score, grade_scale):
         if score >= grade_scale.grade_a:
             return 'A'
@@ -918,6 +986,7 @@ def gradebook_view(request, subject_id):
             'sort_order': sort_order,
             'grade_distribution': grade_distribution,
             'grade_scale_form': grade_scale_form,
+            'quizzes': quizzes,
         }
         return render(request, 'gradebook.html', context)
 
