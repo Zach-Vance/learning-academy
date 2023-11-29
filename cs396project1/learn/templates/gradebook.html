@@ -104,7 +104,6 @@
                             borderWidth: 1
                         }]
                     },
-                    // ... [rest of the chart configuration] ...
                 });
             } catch (error) {
                 console.error("Error initializing chart:", error);
@@ -126,6 +125,8 @@
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 var gradeDistributionData = JSON.parse(document.getElementById('gradeDistribution').textContent);
+                var total = Object.values(gradeDistributionData).reduce((a, b) => a + b, 0);
+
                 var ctx = document.getElementById('gradeDistributionChart').getContext('2d');
                 var gradeDistributionChart = new Chart(ctx, {
                     type: 'pie',
@@ -165,6 +166,16 @@
                                 text: 'Grade Distribution',
                                 font: {
                                     size: 18
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        var label = context.label || '';
+                                        var value = context.parsed;
+                                        var percentage = ((value / total) * 100).toFixed(2);
+                                        return label + ': ' + percentage + '%';
+                                    }
                                 }
                             }
                         }

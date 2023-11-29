@@ -41,11 +41,13 @@
                 <tr>
                     <th>Subject</th>
                     <th>Grade</th>
+                    <th>Percentile</th>
                 </tr>
             </thead>
             <tbody>
                 <td>{{ subject.name }}</td>
                 <td>{{ letter_grade }}</td>
+                <td> {{ student_avg_percentile|floatformat:2 }}th percentile</td>
             </tbody>
             </table>
             
@@ -97,7 +99,7 @@
 <div class="section-card">
     <div class="section-card-header">Taken Quizzes</div>
     <div class="section-card-body">
-        <h6>Average Quiz Score: {{ average_quiz_score|floatformat:2 }}% ({{ student_avg_percentile|floatformat:2 }}th percentile)</h6>
+        <h6>Grade Percentile: ({{ student_avg_percentile|floatformat:2 }}th percentile)</h6>
         <!-- Taken Quizzes Table -->
         <table class="table">
             <thead>

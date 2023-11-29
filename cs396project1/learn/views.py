@@ -519,7 +519,7 @@ def subject_detail_view(request, subject_id):
     student_letter_grade = "Z"
     semester_dates = []
     semester_scores_float= []
-    SEMESTER_LENGTH = 1  # weeks, configurable
+    SEMESTER_LENGTH = 1.5  # weeks, configurable
 
 
     # Ensure the user is authenticated and is a student
@@ -913,7 +913,7 @@ def gradebook_view(request, subject_id):
 
         ##BARGRAPH LOGIC
         now = datetime.datetime.now()
-        SEMESTER_LENGTH = 1  # weeks, adjust as needed
+        SEMESTER_LENGTH = 1.5  # weeks, adjust as needed
         semesters = []
         semester_scores = []
 
