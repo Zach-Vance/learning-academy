@@ -1,0 +1,7 @@
+title = "Repository secret scanning"
+[extend]
+useDefault = true
+[[rules]]
+id = "hardcoded-django-secret"
+description = "Django secrets must come from the environment"
+regex = '''SECRET_KEY\s*=\s*['"][^'"\r\n]{20,}['"]'''
