@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    {% if user.is_authenticated %}
+    <h2 class="mt-4 text-center">Subjects</h2>
+    <hr/>
+    <br/>
+    <div class="card-container">
+        <div class="row">
+            {% for subject in subjects %}
+                <div class="col-md-4 mb-4">
+                    <a href="{% url 'subject_detail' subject.id %}" class="subject-link">
+                        <div class="card subject-card">
+                            <div class="card-layer"></div>
+                            <div class="card-content">
+                                <h5 class="card-title text-center">{{ subject.name }}</h5>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% else %}
+      <h1 class="mt-4 text-center display-4">Welcome to Learning Academy!</h1>
+      <div class="text-center my-4">
+          <p class="lead">
+              Please <a href="{% url 'login' %}" class="btn btn-primary btn-lg">Login</a> or register as a 
+              <a href="{% url 'student_signup' %}" class="btn btn-success btn-lg">Student</a> or a 
+              <a href="{% url 'teacher_signup' %}" class="btn btn-info btn-lg">Teacher</a>!
+          </p>
+          <p class="font-weight-bold">Your success starts with here!</p>
+      </div>
+    {% endif %}
+
+    <style>
+        .subject-card {
+            position: relative;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(135deg, #f5faf6 0%, #4CAF50 100%);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .subject-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .subject-card .card-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            z-index: 1;
+        }
+
+        .subject-card .card-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .subject-card .card-title {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .subject-link {
+            text-decoration: none;
+        }
+    </style>
+{% endblock %}

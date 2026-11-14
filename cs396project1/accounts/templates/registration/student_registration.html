@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Sign Up
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-sm-12">
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h2 class="text-center">Student Registration</h2>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="form-group text-center">
+                            <strong><label for="username">Username:</label></strong><br/>
+                            {{ form.username }}
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group  text-center">
+                                <strong><label for="first_name">First Name:</label></strong><br/>
+                                {{ form.first_name }}
+                            </div>
+                            <div class="form-group  text-center">
+                                <strong><label for="last_name">Last Name:</label></strong><br/>
+                                {{ form.last_name }}
+                            </div>
+                        </div>
+                        <div class="form-group text-center">
+                        <strong><label for="email">Email:</label></strong><br/>
+                            {{ form.email }}
+                        </div>
+                        <div class="form-group text-center">
+                        <strong><label for="password">Password:</label></strong><br/>
+                            {{ form.password1 }}
+                        </div>
+                        <div class="form-group text-center">
+                            <strong><label for="password_confirm">Confirm Password:</label></strong><br/>
+                            {{ form.password2 }}
+                        </div> <br/>
+                        <div class="form-group text-center">
+                            <button type="submit" class="btn btn-primary">Sign Up</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer">
+                    <p class="text-center">
+                        Already have an account? <a href="{% url 'login' %}">Login here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

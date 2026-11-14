@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h2 class="mt-4">Add a New Question</h2>
+            <p class="lead">First, add the question. On the next page, you will add the answers.</p>
+            <hr />
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="form-group">
+                    {{ form }}
+                </div>
+                <br/>
+                <button type="submit" class="btn btn-success">Save</button>
+                <a href="{% url 'edit_quiz' quiz.pk %}" class="btn btn-outline-secondary" role="button">Back</a>
+            </form>
+        </div>
+    </div>
+{% endblock %}

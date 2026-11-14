@@ -1,0 +1,12 @@
+# Never commit user uploads, databases, or secrets
+*.sqlite3
+*.sqlite3-journal
+*.py[cod]
+__pycache__/
+*.log
+.env
+.env.*
+!.env.example
+cs396project1/media/
+cs396project1/store/media/
+cs396project1/sent_emails/
