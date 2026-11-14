@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+      {% if user.is_authenticated and not user.is_student %}
+        <div class="card mt-5">
+          <div class="card-body">
+            <h2 class="card-title mb-3">Confirm Deletion</h2>
+            <p class="card-text">Are you sure you want to delete the quiz "{{ quiz.name }}"?</p>
+            <form method="post">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-sm">Yes, I'm sure</button>
+              <a href="{% url 'edit_quiz' quiz.pk %}" class="btn btn-outline-secondary btn-sm ml-2">Back</a>
+            </form>
+          </div>
+        </div>
+        {% else %}
+            <div class="alert alert-danger mt-4" role="alert">
+                You are not authorized to view this page.
+            </div>
+        {% endif %}
+      </div>
+    </div>
+{% endblock %}

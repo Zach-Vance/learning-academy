@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <style>
+        .search-results {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .search-results th, .search-results td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .search-results th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        .search-results tr:nth-child(even) {background-color: #f9f9f9;}
+        .search-results tr:hover {background-color: #f1f1f1;}
+        .search-results a {
+            color: #0645ad;
+            text-decoration: none;
+        }
+        .search-results a:hover {
+            text-decoration: underline;
+        }
+        .search-header {
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+    </style>
+
+    {% if searched %}
+        <h1>You searched for: "{{ searched }}"</h1>
+
+        <!-- Students -->
+        <h2 class="search-header">Students</h2>
+        <table class="search-results">
+            <!-- Table headers -->
+            <tr>
+                <th>Username</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+            </tr>
+            <!-- Table rows -->
+            {% for student in students %}
+            <tr>
+                <td><a href="{% url 'student_view' student_id=student.id %}">{{ student.username }}</a></td>
+                <td>{{ student.first_name }}</td>
+                <td>{{ student.last_name }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No students found.</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <!-- Quizzes -->
+        <h2 class="search-header">Quizzes</h2>
+        <table class="search-results">
+            <!-- Table headers -->
+            <tr>
+                <th>Name</th>
+                <th>Owner</th>
+            </tr>
+            <!-- Table rows -->
+            {% for quiz in quizzes %}
+                <tr>
+                    {% if user.is_student %}
+                        {% if quiz.highest_attempt_id %}
+                            <td><a href="{% url 'view_attempt' attempt_id=quiz.highest_attempt_id %}">{{ quiz.name }}</a></td>
+                        {% else %}
+                            <td><a href="{% url 'take_quiz' pk=quiz.id %}">{{ quiz.name }}</a></td>
+                        {% endif %}
+                    {% else %}
+                        <td><a href="{% url 'quiz_results' pk=quiz.id %}">{{ quiz.name }}</a></td>
+                    {% endif %}
+                    <td>{{ quiz.owner }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="2">No quizzes found.</td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        <!-- Subjects -->
+        <h2 class="search-header">Subjects</h2>
+        <table class="search-results">
+            <!-- Table headers -->
+            <tr>
+                <th>Name</th>
+            </tr>
+            <!-- Table rows -->
+            {% for subject in subjects %}
+            <tr>
+                <td><a href="{% url 'subject_detail' subject_id=subject.id %}">{{ subject.name }}</a></td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td>No subjects found.</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <!-- Posts -->
+        <h2 class="search-header">Posts</h2>
+        <table class="search-results">
+            <!-- Table headers -->
+            <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Subject</th>
+            </tr>
+            <!-- Table rows -->
+            {% for post in posts %}
+            <tr>
+                <td><a href="{% url 'post' pk=post.id %}">{{ post.title }}</a></td>
+                <td>{{ post.author }}</td>
+                <td>{{ post.subject }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No posts found.</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <!-- Lessons -->
+        <h2 class="search-header">Lessons</h2>
+        <table class="search-results">
+            <!-- Table headers -->
+            <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Subject</th>
+            </tr>
+            <!-- Table rows -->
+            {% for lesson in lessons %}
+            <tr>
+                <td><a href="{% url 'lesson' pk=lesson.id %}">{{ lesson.title }}</a></td>
+                <td>{{ lesson.author }}</td>
+                <td>{{ lesson.subject }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No lessons found.</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+    {% else %}
+        <h1>Please input search criteria in the search bar.</h1>
+    {% endif %}
+{% endblock %}
